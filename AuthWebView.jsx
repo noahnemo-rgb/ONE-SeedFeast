@@ -77,12 +77,6 @@ export const AuthWebView = ({ mode, proxyURL, baseURL }) => {
       source={{
         uri: currentURI,
       }}
-      headers={{
-        'x-createxyz-project-group-id': process.env.EXPO_PUBLIC_PROJECT_GROUP_ID,
-        host: process.env.EXPO_PUBLIC_HOST,
-        'x-forwarded-host': process.env.EXPO_PUBLIC_HOST,
-        'x-createxyz-host': process.env.EXPO_PUBLIC_HOST,
-      }}
       onShouldStartLoadWithRequest={(request) => {
         if (request.url === `${baseURL}${callbackUrl}`) {
           fetch(request.url, { credentials: 'include' }).then(async (response) => {

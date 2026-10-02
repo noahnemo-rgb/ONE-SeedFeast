@@ -7,8 +7,10 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { hash, verify } from 'argon2';
 import { Hono } from 'hono';
 import { contextStorage, getContext } from 'hono/context-storage';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { cors } from 'hono/cors';
-import { proxy } from 'hono/proxy';
 import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import { createHonoServer } from 'react-router-hono-server/node';
@@ -17,6 +19,7 @@ import ws from 'ws';
 import NeonAdapter from './adapter';
 import { getHTMLForErrorPage } from './get-html-for-error-page';
 import { isAuthAction } from './is-auth-action';
+import { askFeast } from './feast/seedfeast-router.js';
 import { API_BASENAME, api } from './route-builder';
 neonConfig.webSocketConstructor = ws;
 
@@ -126,49 +129,6 @@ if (process.env.AUTH_SECRET) {
         },
       },
       providers: [
-        // Dev-only provider for simulated social sign-in (Google, Facebook, etc.)
-        // Creates or finds a user by email without requiring a password.
-        ...(process.env.NEXT_PUBLIC_CREATE_ENV === 'DEVELOPMENT'
-          ? [
-              Credentials({
-                id: 'dev-social',
-                name: 'Development Social Sign-in',
-                credentials: {
-                  email: { label: 'Email', type: 'email' },
-                  name: { label: 'Name', type: 'text' },
-                  provider: { label: 'Provider', type: 'text' },
-                },
-                authorize: async (credentials) => {
-                  const { email, name, provider } = credentials;
-                  if (!email || typeof email !== 'string') return null;
-
-                  const existing = await adapter.getUserByEmail(email);
-                  if (existing) return existing;
-
-                  const allowedProviders = new Set(['google', 'facebook', 'twitter', 'apple']);
-                  const providerName =
-                    typeof provider === 'string' && allowedProviders.has(provider.toLowerCase())
-                      ? provider.toLowerCase()
-                      : 'google';
-                  const newUser = await adapter.createUser({
-                    emailVerified: null,
-                    email,
-                    name:
-                      typeof name === 'string' && name.length > 0
-                        ? name
-                        : undefined,
-                  });
-                  await adapter.linkAccount({
-                    type: 'oauth',
-                    userId: newUser.id,
-                    provider: providerName,
-                    providerAccountId: `dev-${newUser.id}`,
-                  });
-                  return newUser;
-                },
-              }),
-            ]
-          : []),
         Credentials({
           id: 'credentials-signin',
           name: 'Credentials Sign in',
@@ -264,25 +224,65 @@ if (process.env.AUTH_SECRET) {
     }))
   );
 }
-app.all('/integrations/:path{.+}', async (c, next) => {
-  const queryParams = c.req.query();
-  const url = `${process.env.NEXT_PUBLIC_CREATE_BASE_URL ?? 'https://www.create.xyz'}/integrations/${c.req.param('path')}${Object.keys(queryParams).length > 0 ? `?${new URLSearchParams(queryParams).toString()}` : ''}`;
+const seedFeastRoot = fileURLToPath(new URL('.', import.meta.url));
 
-  return proxy(url, {
-    method: c.req.method,
-    body: c.req.raw.body ?? null,
-    // @ts-expect-error -- duplex is accepted by the runtime even though the
-    // type declarations don't include it; required for streaming integrations
-    duplex: 'half',
-    redirect: 'manual',
-    headers: {
-      ...c.req.header(),
-      'X-Forwarded-For': process.env.NEXT_PUBLIC_CREATE_HOST,
-      'x-createxyz-host': process.env.NEXT_PUBLIC_CREATE_HOST,
-      Host: process.env.NEXT_PUBLIC_CREATE_HOST,
-      'x-createxyz-project-group-id': process.env.NEXT_PUBLIC_PROJECT_GROUP_ID,
-    },
-  });
+app.get('/feast', async (c) => {
+  const html = await readFile(join(seedFeastRoot, 'feast', 'page.html'), 'utf8');
+  return c.html(html);
+});
+
+app.get('/feast/seedfeast-router.js', async (c) => {
+  const source = await readFile(join(seedFeastRoot, 'feast', 'seedfeast-router.js'), 'utf8');
+  return c.body(source, 200, { 'Content-Type': 'text/javascript; charset=utf-8' });
+});
+
+app.get('/vendor/ai-buffer/:file', async (c) => {
+  const file = c.req.param('file');
+  if (!/^[A-Za-z0-9._-]+\.js$/.test(file)) return c.notFound();
+  try {
+    const source = await readFile(join(seedFeastRoot, 'node_modules', 'ai-buffer', 'dist', file));
+    return c.body(source, 200, { 'Content-Type': 'text/javascript; charset=utf-8' });
+  } catch {
+    return c.notFound();
+  }
+});
+
+app.post('/api/feast', async (c) => {
+  let body: { seeds?: unknown; notes?: unknown } = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Send the seeds as JSON.' }, 400);
+  }
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (!apiKey) {
+    return c.json(
+      {
+        error:
+          'The server has no OpenRouter key. In the browser, Puter runs first, and a key saved on this device tries Space Bunny Alpha next.',
+      },
+      503,
+    );
+  }
+  try {
+    const result = await askFeast({
+      seeds: typeof body.seeds === 'string' ? body.seeds : '',
+      notes: typeof body.notes === 'string' ? body.notes : '',
+      apiKey,
+      model: process.env.OPENROUTER_MODEL,
+      platform: 'server',
+      timeoutMs: 55_000,
+    });
+    return c.json({ recipe: result.recipe, models: result.models });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'SeedFeast could not cook that.';
+    const status = message.includes('seeds or ingredients') ? 400 : 502;
+    return c.json({ error: message }, status);
+  }
+});
+
+app.all('/integrations/:path{.+}', (c) => {
+  return c.json({ error: 'SeedFeast does not forward integration handles or webhooks.' }, 410);
 });
 
 app.use('/api/auth/*', async (c, next) => {

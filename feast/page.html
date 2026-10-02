@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SeedFeast</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "ai-buffer": "/vendor/ai-buffer/index.js"
+        }
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Georgia, "Iowan Old Style", serif;
+        background: #f6f1e7;
+        color: #2b2118;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 2.5rem 1.25rem 4rem;
+      }
+      h1 {
+        font-size: 2.4rem;
+        margin-bottom: 0.25rem;
+      }
+      p {
+        line-height: 1.5;
+      }
+      label {
+        display: block;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        font-size: 0.85rem;
+        margin: 1rem 0 0.35rem;
+      }
+      textarea,
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #c9b89a;
+        background: #fffdf8;
+        color: inherit;
+        border-radius: 0.4rem;
+        padding: 0.7rem 0.8rem;
+        font: inherit;
+      }
+      textarea {
+        min-height: 7rem;
+        resize: vertical;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 1rem;
+      }
+      button {
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background: #6d4c2f;
+        color: #fffaf3;
+        border: 0;
+        border-radius: 999px;
+        padding: 0.7rem 1.1rem;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        color: #6d4c2f;
+        border: 1px solid #6d4c2f;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      #answer,
+      #error {
+        white-space: pre-wrap;
+      }
+      #error {
+        color: #8a2a1a;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>SeedFeast</h1>
+      <p>From seed to gourmet feast. Puter in this browser runs first. A key saved here tries Space Bunny Alpha, then your OpenRouter model. The server key is the last stop and stays on the server.</p>
+      <form id="cook-form">
+        <label for="seeds">Seeds and ingredients</label>
+        <textarea id="seeds" name="seeds" required placeholder="tomato, basil, day-old bread"></textarea>
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="one pan, dinner for two"></textarea>
+        <label for="key">OpenRouter key, saved in this tab only</label>
+        <input id="key" name="key" type="password" autocomplete="off" />
+        <div class="actions">
+          <button id="cook" type="submit">Cook here</button>
+          <button id="server" class="secondary" type="button">Cook on the server</button>
+        </div>
+      </form>
+      <p id="error" role="alert"></p>
+      <pre id="answer"></pre>
+    </main>
+    <script src="https://js.puter.com/v2/" async></script>
+    <script type="module">
+      import { askFeast } from "/feast/seedfeast-router.js";
+
+      const KEY = "seedfeast_openrouter_key";
+      const form = document.querySelector("#cook-form");
+      const keyInput = document.querySelector("#key");
+      const answer = document.querySelector("#answer");
+      const error = document.querySelector("#error");
+      const cook = document.querySelector("#cook");
+      const server = document.querySelector("#server");
+      keyInput.value = sessionStorage.getItem(KEY) ?? "";
+
+      function seedsFromForm() {
+        return {
+          seeds: document.querySelector("#seeds").value,
+          notes: document.querySelector("#notes").value,
+        };
+      }
+
+      function rememberKey() {
+        const apiKey = keyInput.value.trim();
+        if (apiKey) sessionStorage.setItem(KEY, apiKey);
+        else sessionStorage.removeItem(KEY);
+        return apiKey;
+      }
+
+      function setBusy(busy) {
+        cook.disabled = busy;
+        server.disabled = busy;
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const apiKey = rememberKey();
+        answer.textContent = "";
+        error.textContent = "";
+        setBusy(true);
+        try {
+          const result = await askFeast({
+            ...seedsFromForm(),
+            apiKey,
+            platform: "browser",
+            loadPuter: async () => {
+              if (window.puter?.ai?.chat) return window.puter;
+              throw new Error("Puter is not available in this browser.");
+            },
+          });
+          answer.textContent = result.recipe;
+        } catch (err) {
+          error.textContent = err instanceof Error ? err.message : "SeedFeast could not cook that.";
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      server.addEventListener("click", async () => {
+        rememberKey();
+        answer.textContent = "";
+        error.textContent = "";
+        setBusy(true);
+        try {
+          const response = await fetch("/api/feast", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(seedsFromForm()),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "The server could not cook that.");
+          answer.textContent = data.recipe;
+        } catch (err) {
+          error.textContent = err instanceof Error ? err.message : "SeedFeast could not cook that.";
+        } finally {
+          setBusy(false);
+        }
+      });
+    </script>
+  </body>
+</html>

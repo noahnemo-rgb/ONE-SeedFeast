@@ -26,7 +26,7 @@ import './global.css';
 import { LoadFonts } from 'virtual:load-fonts.jsx';
 import fetch from '@/__create/fetch';
 // @ts-expect-error -- generated auth module, no type declarations available
-import { SessionProvider } from '@auth/create/react';
+import { SessionProvider } from '@hono/auth-js/react';
 import { toPng } from 'html-to-image';
 import { useNavigate } from 'react-router';
 import { serializeError } from 'serialize-error';
