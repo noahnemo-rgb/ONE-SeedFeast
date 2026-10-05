@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useSession } from "@auth/create/react";
+import { useSession } from "@hono/auth-js/react";
 
 
 const useUser = () => {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 
-export const authKey = `${process.env.EXPO_PUBLIC_PROJECT_GROUP_ID}-jwt`;
+export const authKey = "seedfeast-jwt";
 
 /**
  * Explicit Keychain options used on every SecureStore call in the auth flow.
@@ -20,7 +20,7 @@ export const authKey = `${process.env.EXPO_PUBLIC_PROJECT_GROUP_ID}-jwt`;
  *   NSException and trip iOS 26's unhandled async-void TurboModule rethrow.
  */
 export const secureStoreOptions = {
-  keychainService: 'anything-auth',
+  keychainService: 'seedfeast-auth',
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
   requireAuthentication: false,
 };

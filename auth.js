@@ -1,9 +1,7 @@
 /**
- * WARNING: This file connects this app to Anythings's internal auth system. Do
- * not attempt to edit it. Modifying it will have no effect on your project as it is controlled by our system.
- * Do not import @auth/create or @auth/create anywhere else or it may break. This is an internal package.
+ * SeedFeast accounts stay on this app's Neon database and AUTH_SECRET.
  */
-import CreateAuth from "@auth/create"
+import { Auth } from "@auth/core"
 import Credentials from "@auth/core/providers/credentials"
 import { CredentialsSignin } from '@auth/core/errors'
 import { Pool } from '@neondatabase/serverless'
@@ -255,7 +253,11 @@ const pool = new Pool({
     });
 const adapter = Adapter(pool);
 
-export const { auth } = CreateAuth({
+const authConfig = {
+  trustHost: true,
+  secret: process.env.AUTH_SECRET,
+  basePath: "/api/auth",
+  adapter,
   providers: [Credentials({
   id: 'credentials-signin',
   name: 'Credentials Sign in',
@@ -360,4 +362,24 @@ export const { auth } = CreateAuth({
     signIn: '/account/signin',
     signOut: '/account/logout',
   },
-})
+}
+
+export async function auth(request) {
+  if (!request || typeof request.headers?.get !== "function" || !request.url) {
+    return null
+  }
+  let origin
+  try {
+    origin = new URL(request.url).origin
+  } catch {
+    return null
+  }
+  const response = await Auth(
+    new Request(`${origin}/api/auth/session`, { headers: request.headers }),
+    authConfig,
+  )
+  if (!response.ok) return null
+  const session = await response.json()
+  if (!session || typeof session !== "object" || !session.user) return null
+  return session
+}

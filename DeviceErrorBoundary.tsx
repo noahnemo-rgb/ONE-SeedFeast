@@ -9,11 +9,7 @@ import { getTestFlightLogger } from './testflight-logger';
 
 type ErrorBoundaryState = { hasError: boolean; error: unknown | null; sentLogs: boolean };
 
-const DeviceErrorBoundary = ({
-  sentLogs,
-}: {
-  sentLogs: boolean;
-}) => {
+const DeviceErrorBoundary = () => {
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
@@ -30,11 +26,7 @@ const DeviceErrorBoundary = ({
   return (
     <SharedErrorBoundary
       isOpen
-      description={
-        sentLogs
-          ? 'It looks like an error occurred while trying to use your app. This error has been reported to the AI agent and should be visible to the AI soon. If it is not present please see anything.com/docs for help'
-          : 'It looks like an error occurred while trying to use your app. Please see anything.com/docs for help'
-      }
+      description="It looks like an error occurred while trying to use your app. Restart SeedFeast and try that step again."
     >
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button color="primary" onPress={handleReload}>
@@ -74,7 +66,7 @@ export class DeviceErrorBoundaryWrapper extends React.Component<
 
   render() {
     if (this.state.hasError) {
-      return <DeviceErrorBoundary sentLogs={this.state.sentLogs} />;
+      return <DeviceErrorBoundary />;
     }
     return this.props.children;
   }
