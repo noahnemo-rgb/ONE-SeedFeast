@@ -169,7 +169,7 @@ export default function HomeScreen() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8A3E24]">Culinary heritage</p>
         <h2 className="font-display mt-1 text-base font-semibold">Gourmet is the flavor in the seed</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#6B534C]">
-          Gourmet names the culinary heritage in the seed — the flavor a variety was kept alive for. Recipes stay here when you cook what you grew or were given.
+          Gourmet names the culinary heritage in the seed — the flavor a variety was kept alive for. Cooking uses ai-buffer, the shared connection to Puter, Space Bunny Alpha, and OpenRouter. Recipes stay here when you cook what you grew or were given.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
           <Link to="/feast" className="text-[#8A3E24] underline decoration-[#E7C2B2] underline-offset-4">

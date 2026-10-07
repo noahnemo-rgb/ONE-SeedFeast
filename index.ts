@@ -264,7 +264,7 @@ app.post('/api/feast', async (c) => {
       platform: 'server',
       timeoutMs: 55_000,
     });
-    return c.json({ recipe: result.recipe, models: result.models });
+    return c.json({ recipe: result.recipe, models: result.models, connection: result.connection });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'SeedFeast could not cook that.';
     const status = message.includes('seeds or ingredients') ? 400 : 502;

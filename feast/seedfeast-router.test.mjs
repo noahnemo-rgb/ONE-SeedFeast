@@ -30,6 +30,7 @@ test("browser Puter fails over to Space Bunny Alpha, then the OpenRouter model",
   });
 
   assert.equal(result.recipe, "Tomato bread feast");
+  assert.equal(result.connection, "openrouter");
   assert.deepEqual(models, ["stealth/space-bunny-alpha", "openai/gpt-4o-mini"]);
   assert.deepEqual(result.models, ["stealth/space-bunny-alpha", "openai/gpt-4o-mini"]);
   assert.deepEqual(extras[0], { effort: "medium" });

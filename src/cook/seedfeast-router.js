@@ -1,5 +1,13 @@
 import { createCallRouter } from "ai-buffer";
 
+const SPACE_BUNNY_MODEL = "stealth/space-bunny-alpha";
+
+export const CONNECTION_LABELS = {
+  puter: "Puter",
+  "space-bunny": "Space Bunny Alpha",
+  openrouter: "OpenRouter",
+};
+
 export const SEEDFEAST_MODEL = "openai/gpt-4o-mini";
 export const SEEDFEAST_SITE = "https://seedfeast.ai";
 export const SEEDFEAST_PROMPT = [
@@ -33,7 +41,7 @@ function keyedClient(apiKey, model, fetchImpl, timeoutMs) {
   const named = typeof model === "string" && model.trim() ? model.trim() : SEEDFEAST_MODEL;
   return {
     spaceBunny: shared,
-    openrouter: named === "stealth/space-bunny-alpha" ? shared : { ...shared, model: named },
+    openrouter: named === SPACE_BUNNY_MODEL ? shared : { ...shared, model: named },
   };
 }
 
@@ -75,22 +83,42 @@ export async function askFeast({
 } = {}) {
   const message = feastMessage(seeds, notes);
   const models = [];
+  let connection = null;
   const wrappedFetch = async (input, init) => {
     try {
       const payload = JSON.parse(String(init?.body));
-      if (typeof payload?.model === "string") models.push(payload.model);
+      if (typeof payload?.model === "string") {
+        models.push(payload.model);
+        connection = payload.model === SPACE_BUNNY_MODEL ? "space-bunny" : "openrouter";
+      }
     } catch {
       /* The model id is only for the cook's status line. */
     }
     const impl = fetchImpl ?? fetch;
     return impl(input, init);
   };
+  const wrappedLoadPuter = loadPuter
+    ? async () => {
+        const puter = await loadPuter();
+        if (!puter?.ai?.chat) return puter;
+        return {
+          ...puter,
+          ai: {
+            ...puter.ai,
+            chat: async (...args) => {
+              connection = "puter";
+              return puter.ai.chat(...args);
+            },
+          },
+        };
+      }
+    : loadPuter;
   const router = createSeedFeastRouter({
     apiKey,
     model,
     platform,
     fetchImpl: wrappedFetch,
-    loadPuter,
+    loadPuter: wrappedLoadPuter,
     timeoutMs,
   });
   if (!router) {
@@ -103,5 +131,5 @@ export async function askFeast({
     systemPrompt: SEEDFEAST_PROMPT,
     timeoutMs,
   });
-  return { recipe, models };
+  return { recipe, models, connection };
 }

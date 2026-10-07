@@ -1,4 +1,4 @@
-import { askFeast } from '../../cook/seedfeast-router.js';
+import { askFeast, CONNECTION_LABELS, SEEDFEAST_SITE } from '../../cook/seedfeast-router.js';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { AppFrame } from '../components/frame';
@@ -10,6 +10,7 @@ export default function FeastScreen() {
   const [notes, setNotes] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [answer, setAnswer] = useState('');
+  const [connection, setConnection] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -35,6 +36,7 @@ export default function FeastScreen() {
     event.preventDefault();
     const key = rememberKey();
     setAnswer('');
+    setConnection('');
     setError('');
     setBusy(true);
     try {
@@ -49,6 +51,7 @@ export default function FeastScreen() {
         },
       });
       setAnswer(result.recipe);
+      setConnection(result.connection || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'SeedFeast could not cook that.');
     } finally {
@@ -59,6 +62,7 @@ export default function FeastScreen() {
   async function cookOnServer() {
     rememberKey();
     setAnswer('');
+    setConnection('');
     setError('');
     setBusy(true);
     try {
@@ -70,6 +74,7 @@ export default function FeastScreen() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'The server could not cook that.');
       setAnswer(data.recipe);
+      setConnection(data.connection || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'SeedFeast could not cook that.');
     } finally {
@@ -85,7 +90,7 @@ export default function FeastScreen() {
         </Link>
         <h1 className="text-4xl">SeedFeast</h1>
         <p className="mt-2 leading-relaxed">
-          From seed to gourmet feast. Puter in this browser runs first. A key saved here tries Space Bunny Alpha, then your OpenRouter model. The server key is the last stop and stays on the server.
+          From seed to gourmet feast. Cooking goes through ai-buffer, the shared connection for this site ({SEEDFEAST_SITE}). Puter in this browser runs first. A key saved here tries Space Bunny Alpha, then your OpenRouter model. The server key is the last stop and stays on the server.
         </p>
         <form onSubmit={cookHere}>
           <label className="mt-4 block font-sans text-sm" htmlFor="seeds">
@@ -137,6 +142,11 @@ export default function FeastScreen() {
         {error ? (
           <p className="mt-4 whitespace-pre-wrap text-[#8a2a1a]" role="alert">
             {error}
+          </p>
+        ) : null}
+        {connection ? (
+          <p className="mt-4 font-sans text-sm text-[#6d4c2f]">
+            Connected through {CONNECTION_LABELS[connection] || connection}.
           </p>
         ) : null}
         {answer ? <pre className="mt-4 whitespace-pre-wrap font-serif">{answer}</pre> : null}
