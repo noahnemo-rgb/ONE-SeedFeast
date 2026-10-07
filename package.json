@@ -4,10 +4,10 @@
 	"type": "module",
 	"scripts": {
 		"dev": "react-router dev",
-		"build": "react-router build",
+		"build": "react-router build && node scripts/assemble-vercel-output.mjs && node scripts/verify-vercel-routing.mjs",
 		"start": "react-router-serve ./build/server/index.js",
 		"typecheck": "react-router typegen && tsc --noEmit",
-		"test": "node --test feast/seedfeast-router.test.mjs feast/handles.test.mjs src/server/catalog.test.mjs"
+		"test": "node --test feast/seedfeast-router.test.mjs feast/handles.test.mjs src/server/catalog.test.mjs scripts/vercel-output-config.test.mjs"
 	},
 	"dependencies": {
 		"@auth/core": "^0.37.2",
@@ -81,6 +81,7 @@
 		"@testing-library/react": "^16.3.0",
 		"@types/micromatch": "^4.0.9",
 		"@types/node": "^20",
+		"@vercel/nft": "1.11.0",
 		"@types/react": "^18.3.1",
 		"@types/react-dom": "^18.3.1",
 		"@types/ws": "^8.18.1",
