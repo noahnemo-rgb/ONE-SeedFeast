@@ -357,13 +357,15 @@ function createSeed() {
       scientific_name: 'Eragrostis tef',
       origin: 'Ethiopian highlands',
       description:
-        'Tiny highland grain, still passed hand to hand. Sharing an extra spoon of seed, no charge.',
+        'A highland line that stays alive if the next season is funded. Back the plot — seed, labor, and a share of what is saved returns to the cooperative.',
       image: img('photo-1536304993881-ff6e9eefa2a6'),
       category_id: 4,
-      quantity: '2 tablespoons of seed',
+      quantity: 'Season of seed saving',
       listing_type: 'offer',
-      exchange_type: 'free',
-      price: null,
+      exchange_type: 'fund',
+      price: '120.00',
+      funded_amount: 75,
+      backer_count: 9,
       location_city: 'Addis Ababa',
       location_state: 'Ethiopia',
       growing_season: 'Warm season',
@@ -372,7 +374,7 @@ function createSeed() {
       organic: true,
       heirloom: true,
       status: 'available',
-      created_at: '2026-09-25T12:00:00.000Z',
+      created_at: '2026-09-27T18:00:00.000Z',
     },
     {
       id: 9,
@@ -453,13 +455,15 @@ function createSeed() {
       scientific_name: 'Sorghum bicolor',
       origin: 'African savanna',
       description:
-        'Drought-hardy grain from a community plot. Selling a cup of open-pollinated seed for another garden.',
+        'The Kano plot needs backing to save this season of sorghum seed for members. Funds stay with the growers keeping the line.',
       image: img('photo-1530836369250-ef72a3f5cda8'),
       category_id: 4,
-      quantity: '1 cup seed',
+      quantity: '1 cup seed, once the season is funded',
       listing_type: 'offer',
-      exchange_type: 'sell',
-      price: '5.00',
+      exchange_type: 'fund',
+      price: '200.00',
+      funded_amount: 140,
+      backer_count: 18,
       location_city: 'Kano',
       location_state: 'Nigeria',
       growing_season: 'Warm season',
@@ -783,12 +787,13 @@ function listingView(listing) {
   };
 }
 
-export function filterListings({ category = null, type = null, search = '' } = {}) {
+export function filterListings({ category = null, type = null, exchange = null, search = '' } = {}) {
   const needle = String(search || '').trim().toLowerCase();
   return state.listings
     .filter((listing) => listing.status === 'available')
     .filter((listing) => (category ? listing.category_id === Number(category) : true))
     .filter((listing) => (type && type !== 'all' ? listing.listing_type === type : true))
+    .filter((listing) => (exchange && exchange !== 'all' ? listing.exchange_type === exchange : true))
     .filter((listing) => {
       if (!needle) return true;
       return (
@@ -1109,6 +1114,7 @@ export function mountCatalogApi(app) {
       filterListings({
         category: c.req.query('category'),
         type: c.req.query('type'),
+        exchange: c.req.query('exchange'),
         search: c.req.query('search'),
       }),
     );
@@ -1132,6 +1138,8 @@ export function mountCatalogApi(app) {
       listing_type: body.listing_type,
       exchange_type: body.exchange_type,
       price: body.price || null,
+      funded_amount: body.exchange_type === 'fund' ? Number(body.funded_amount) || 0 : null,
+      backer_count: body.exchange_type === 'fund' ? Number(body.backer_count) || 0 : null,
       location_city: body.location_city || '',
       location_state: body.location_state || '',
       growing_season: body.growing_season || '',

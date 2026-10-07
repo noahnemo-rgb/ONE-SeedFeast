@@ -2,12 +2,13 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { AppFrame } from './components/frame';
+import { exchangeLabel } from './components/exchange';
 
 const ways = [
-  { title: 'Sell', detail: 'Packets, roots, and plants at a grower’s price' },
-  { title: 'Trade', detail: 'Swap for a variety you are missing' },
-  { title: 'Share', detail: 'Pass along extras, cuttings, and starts' },
-  { title: 'Gift', detail: 'Give an heirloom away, no charge' },
+  { title: 'Shop', detail: 'Buy packets, roots, and plants from the member who grew them', to: '/seeds?mode=shop' },
+  { title: 'Trade', detail: 'Swap for a variety your garden is missing', to: '/seeds?mode=trade' },
+  { title: 'Gift', detail: 'Pass extras on. No charge, still part of the cooperative', to: '/seeds?mode=gift' },
+  { title: 'Fund', detail: 'Back a member who is keeping a rare line in the ground', to: '/seeds?mode=fund' },
 ];
 
 const held = [
@@ -19,7 +20,7 @@ const held = [
 
 export default function HomeScreen() {
   useEffect(() => {
-    document.title = 'SeedFeast — worldwide seed vault';
+    document.title = 'SeedFeast — cooperative seed exchange';
   }, []);
 
   const listingsQuery = useQuery({
@@ -39,7 +40,7 @@ export default function HomeScreen() {
     },
   });
 
-  const listings = Array.isArray(listingsQuery.data) ? listingsQuery.data.slice(0, 3) : [];
+  const listings = Array.isArray(listingsQuery.data) ? listingsQuery.data.slice(0, 4) : [];
   const recipes = Array.isArray(recipesQuery.data) ? recipesQuery.data.slice(0, 4) : [];
 
   return (
@@ -51,27 +52,27 @@ export default function HomeScreen() {
           className="mx-auto h-48 w-auto max-w-full object-contain"
         />
         <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em]">
-          Worldwide community vault
+          Worldwide cooperative
         </p>
         <h1 className="font-display mt-2 text-center text-[30px] font-bold leading-[1.15]">
-          A seed vault the world keeps together.
+          The niche exchange for ancient, heirloom, and gourmet seed.
         </h1>
         <p className="mx-auto mt-3 max-w-[34rem] text-center text-[15px] leading-relaxed">
-          Sell, trade, share, and gift lost ancient and heirloom seeds, roots, cuttings, and plants.
-          Listings move from grower to grower, a community exchange spread worldwide.
+          A community marketplace with the manners of a shop, a trade board, and a fund. Members sell, trade, gift, and
+          fund the plants the world still has because someone kept them.
         </p>
         <div className="mt-5 flex flex-col gap-3">
           <Link
             to="/seeds"
             className="rounded-full bg-[#3B1718] px-5 py-3.5 text-center text-base font-semibold text-[#FFF6EF]"
           >
-            Browse the vault
+            Browse the exchange
           </Link>
           <Link
             to="/create-seed-listing"
             className="rounded-full border-2 border-[#3B1718] px-5 py-3.5 text-center text-base font-semibold text-[#3B1718]"
           >
-            Offer a listing
+            List with the cooperative
           </Link>
         </div>
       </section>
@@ -82,7 +83,7 @@ export default function HomeScreen() {
           {ways.map((way) => (
             <Link
               key={way.title}
-              to="/seeds"
+              to={way.to}
               className="rounded-2xl bg-white p-3.5 shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
             >
               <p className="font-display text-base font-semibold text-[#3B1718]">{way.title}</p>
@@ -95,7 +96,7 @@ export default function HomeScreen() {
       <section className="px-5 pt-6">
         <h2 className="font-display text-lg font-semibold">What travels</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#6B534C]">
-          Ancient and heirloom stock, kept alive because someone still has it and is willing to pass it on.
+          Ancient, heirloom, and gourmet stock. Gourmet is the culinary heritage in the seed. The cooperative keeps that flavor moving.
         </p>
         <ul className="mt-3 grid grid-cols-2 gap-2">
           {held.map((item) => (
@@ -109,7 +110,7 @@ export default function HomeScreen() {
 
       <section className="px-5 pt-6">
         <div className="mb-3 flex items-end justify-between gap-3">
-          <h2 className="font-display text-lg font-semibold">Open in the exchange</h2>
+          <h2 className="font-display text-lg font-semibold">On the exchange now</h2>
           <Link to="/seeds" className="shrink-0 text-sm font-semibold text-[#8A3E24]">
             See all
           </Link>
@@ -120,14 +121,14 @@ export default function HomeScreen() {
           <p className="text-sm text-[#6B534C]">
             Listings are on the exchange.{' '}
             <Link to="/seeds" className="font-semibold text-[#8A3E24]">
-              Browse the vault
+              Browse the exchange
             </Link>
           </p>
         ) : listings.length === 0 ? (
           <p className="text-sm text-[#6B534C]">
-            The vault is ready for the first listing.{' '}
+            The exchange is ready for the first listing.{' '}
             <Link to="/create-seed-listing" className="font-semibold text-[#8A3E24]">
-              Offer one
+              List one
             </Link>
           </p>
         ) : (
@@ -195,13 +196,4 @@ export default function HomeScreen() {
       </section>
     </AppFrame>
   );
-}
-
-function exchangeLabel(listing) {
-  if (listing.listing_type === 'request') return 'Looking for';
-  if (listing.exchange_type === 'sell') {
-    return listing.price ? `$${Number(listing.price).toFixed(2)}` : 'Sell';
-  }
-  if (listing.exchange_type === 'trade') return 'Trade';
-  return 'Gift';
 }
