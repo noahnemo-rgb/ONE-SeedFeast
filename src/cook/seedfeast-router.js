@@ -17,6 +17,37 @@ export const SEEDFEAST_PROMPT = [
   "Keep the recipe cookable in a home kitchen.",
 ].join(" ");
 
+export const CHAT_PROMPT = [
+  "You are SeedFeast's cooperative assistant.",
+  "Members are talking about the seed vault exchange: ancient, heirloom, and gourmet plants, and how to shop, trade, gift, or fund them.",
+  "Answer the member directly.",
+  "Do not write a recipe unless they ask to cook.",
+].join(" ");
+
+export const LISTING_PROMPT = [
+  "You are SeedFeast's listing assistant.",
+  "Help a member describe living plant material for the cooperative exchange.",
+  "Cover the display name, scientific name when they gave one, origin, quantity, and whether the line should be a shop price, a trade, a gift, or a fund.",
+  "Write for growers passing plants on.",
+  "Do not write a recipe.",
+].join(" ");
+
+export const COORDINATE_PROMPT = [
+  "You are SeedFeast's community coordinator.",
+  "Help members arrange a handoff: who offers, who receives, and whether the movement is a shop sale, a trade, a gift, or a fund pledge.",
+  "Keep the plan practical for people in different places.",
+  "Do not write a recipe unless they ask to cook.",
+].join(" ");
+
+export const AI_PURPOSES = ["chat", "listing", "coordinate"];
+
+export function purposePrompt(purpose) {
+  if (purpose === "cook") return SEEDFEAST_PROMPT;
+  if (purpose === "listing") return LISTING_PROMPT;
+  if (purpose === "coordinate") return COORDINATE_PROMPT;
+  return CHAT_PROMPT;
+}
+
 export function feastMessage(seeds, notes) {
   const seedText = String(seeds ?? "").trim();
   const noteText = String(notes ?? "").trim();
@@ -71,17 +102,16 @@ export function createSeedFeastRouter({
   });
 }
 
-export async function askFeast({
-  seeds,
-  notes,
+async function callConnection({
+  message,
+  systemPrompt,
   apiKey,
   model,
   platform = "browser",
   fetchImpl,
   loadPuter,
   timeoutMs,
-} = {}) {
-  const message = feastMessage(seeds, notes);
+}) {
   const models = [];
   let connection = null;
   const wrappedFetch = async (input, init) => {
@@ -92,7 +122,7 @@ export async function askFeast({
         connection = payload.model === SPACE_BUNNY_MODEL ? "space-bunny" : "openrouter";
       }
     } catch {
-      /* The model id is only for the cook's status line. */
+      /* The model id is only for the status line. */
     }
     const impl = fetchImpl ?? fetch;
     return impl(input, init);
@@ -126,10 +156,64 @@ export async function askFeast({
       "The server has no OpenRouter key. In the browser, Puter runs first, and a key saved on this device tries Space Bunny Alpha next.",
     );
   }
-  const recipe = await router.streamChat({
+  const reply = await router.streamChat({
     message,
-    systemPrompt: SEEDFEAST_PROMPT,
+    systemPrompt,
     timeoutMs,
   });
-  return { recipe, models, connection };
+  return { reply, models, connection };
+}
+
+export async function askConnection({
+  purpose = "chat",
+  message,
+  notes,
+  apiKey,
+  model,
+  platform = "browser",
+  fetchImpl,
+  loadPuter,
+  timeoutMs,
+} = {}) {
+  const text = String(message ?? "").trim();
+  if (!text) throw new Error("Tell SeedFeast what you need.");
+  if (purpose !== "cook" && !AI_PURPOSES.includes(purpose)) {
+    throw new Error("Choose chat, listing help, or community coordination.");
+  }
+  const noteText = String(notes ?? "").trim();
+  const full = noteText ? `${text}\n\nNotes:\n${noteText}` : text;
+  const result = await callConnection({
+    message: full,
+    systemPrompt: purposePrompt(purpose),
+    apiKey,
+    model,
+    platform,
+    fetchImpl,
+    loadPuter,
+    timeoutMs,
+  });
+  return { ...result, purpose };
+}
+
+export async function askFeast({
+  seeds,
+  notes,
+  apiKey,
+  model,
+  platform = "browser",
+  fetchImpl,
+  loadPuter,
+  timeoutMs,
+} = {}) {
+  const result = await callConnection({
+    message: feastMessage(seeds, notes),
+    systemPrompt: SEEDFEAST_PROMPT,
+    apiKey,
+    model,
+    platform,
+    fetchImpl,
+    loadPuter,
+    timeoutMs,
+  });
+  return { recipe: result.reply, models: result.models, connection: result.connection };
 }

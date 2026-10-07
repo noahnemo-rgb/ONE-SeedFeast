@@ -128,6 +128,9 @@ export default function CreateSeedListing() {
         <div>
           <FieldLabel>Description</FieldLabel>
           <textarea className={`${field} h-24`} placeholder="A shop packet, a trade, a gift, or a fund to keep the line in the ground." value={formData.description} onChange={(event) => setField({ description: event.target.value })} />
+          <Link to="/assist?purpose=listing" className="mt-2 inline-block text-sm font-semibold text-[#8A3E24]">
+            Ask for help writing this listing
+          </Link>
         </div>
         <div>
           <FieldLabel>Category</FieldLabel>

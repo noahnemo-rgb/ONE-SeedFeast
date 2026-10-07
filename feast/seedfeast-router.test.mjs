@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { AiBufferError } from "ai-buffer";
-import { askFeast, createSeedFeastRouter } from "./seedfeast-router.js";
+import { askConnection, askFeast, createSeedFeastRouter, purposePrompt } from "./seedfeast-router.js";
 
 function sse(text) {
   const body = `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\ndata: [DONE]\n`;
@@ -56,6 +56,50 @@ test("the server stays quiet without a key", async () => {
     () => askFeast({ seeds: "beans", platform: "server" }),
     (error) => error instanceof Error && /no OpenRouter key/.test(error.message),
   );
+});
+
+test("chat, listing help, and coordination use the same connection without a recipe", async () => {
+  for (const purpose of ["chat", "listing", "coordinate"]) {
+    const prompt = purposePrompt(purpose);
+    assert.equal(prompt.includes("feast recipe"), false);
+    let system = "";
+    const result = await askConnection({
+      purpose,
+      message: "Keep the chufa line moving between growers.",
+      apiKey: "sk-test",
+      platform: "server",
+      timeoutMs: 1000,
+      fetchImpl: async (_input, init) => {
+        const payload = JSON.parse(String(init?.body));
+        system = payload.messages?.[0]?.content || "";
+        return sse("Members can gift the tubers.");
+      },
+    });
+    assert.equal(result.purpose, purpose);
+    assert.equal(result.reply, "Members can gift the tubers.");
+    assert.equal(result.connection, "space-bunny");
+    assert.equal(system, prompt);
+    assert.equal(system.includes("feast recipe"), false);
+  }
+});
+
+test("an empty cooperative question does not call a model", async () => {
+  let called = false;
+  await assert.rejects(
+    () =>
+      askConnection({
+        purpose: "chat",
+        message: "   ",
+        apiKey: "sk-test",
+        platform: "server",
+        fetchImpl: async () => {
+          called = true;
+          return sse("no");
+        },
+      }),
+    (error) => error instanceof Error && /what you need/.test(error.message),
+  );
+  assert.equal(called, false);
 });
 
 test("empty seeds do not call a model", async () => {

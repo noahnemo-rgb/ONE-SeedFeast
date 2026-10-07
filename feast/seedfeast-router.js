@@ -5,4 +5,7 @@ export {
   feastMessage,
   createSeedFeastRouter,
   askFeast,
+  askConnection,
+  AI_PURPOSES,
+  purposePrompt,
 } from "../src/cook/seedfeast-router.js";

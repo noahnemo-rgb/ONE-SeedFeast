@@ -156,6 +156,14 @@ export default function SeedDetail() {
           {listing.heirloom ? <span className="text-sm text-[#8B5CF6]">👑 Heirloom</span> : null}
         </div>
         {listing.description ? <p className="mb-5 text-base leading-6 text-[#374151]">{listing.description}</p> : null}
+        <p className="mb-5">
+          <Link
+            to={`/assist?purpose=coordinate&message=${encodeURIComponent(`Coordinate ${listing.title}${listing.scientific_name ? ` (${listing.scientific_name})` : ''}. ${listing.exchange_type === 'fund' ? 'This is a community fund.' : listing.exchange_type === 'trade' ? 'This is a trade.' : listing.exchange_type === 'sell' ? 'This is a shop listing.' : 'This is a gift.'}`)}`}
+            className="text-sm font-semibold text-[#8A3E24]"
+          >
+            Coordinate this listing with the cooperative
+          </Link>
+        </p>
         <div className="mb-5 space-y-3 rounded-xl bg-[#F9FAFB] p-4">
           <Detail label="Origin" value={listing.origin} />
           <Detail label="Quantity" value={listing.quantity} />
