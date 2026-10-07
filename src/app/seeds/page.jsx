@@ -1,17 +1,37 @@
 import { MapPin, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { exchangeKind, exchangeMark, FundMeter } from '../components/exchange';
 import { AppFrame, GreenSpinner } from '../components/frame';
 import { useSession } from '../components/session';
+
+const modes = [
+  ['all', 'All'],
+  ['shop', 'Shop'],
+  ['trade', 'Trade'],
+  ['gift', 'Gift'],
+  ['fund', 'Fund'],
+  ['request', 'Looking for'],
+];
+
+function queryForMode(mode) {
+  if (mode === 'shop') return { exchange: 'sell' };
+  if (mode === 'trade') return { exchange: 'trade' };
+  if (mode === 'gift') return { exchange: 'free', type: 'offer' };
+  if (mode === 'fund') return { exchange: 'fund' };
+  if (mode === 'request') return { type: 'request' };
+  return {};
+}
 
 export default function SeedsHome() {
   const navigate = useNavigate();
   const { user, isReady } = useSession();
+  const [params, setParams] = useSearchParams();
+  const mode = params.get('mode') || 'all';
   const [categories, setCategories] = useState([]);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -22,32 +42,44 @@ export default function SeedsHome() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (selectedCategory) params.set('category', selectedCategory);
-    if (selectedType !== 'all') params.set('type', selectedType);
-    if (searchQuery) params.set('search', searchQuery);
+    const query = new URLSearchParams();
+    const modeQuery = queryForMode(mode);
+    if (selectedCategory) query.set('category', selectedCategory);
+    if (modeQuery.type) query.set('type', modeQuery.type);
+    if (modeQuery.exchange) query.set('exchange', modeQuery.exchange);
+    if (searchQuery) query.set('search', searchQuery);
     setLoading(true);
-    fetch(`/api/seeds/listings?${params.toString()}`)
+    fetch(`/api/seeds/listings?${query.toString()}`)
       .then((response) => response.json())
       .then((data) => setListings(Array.isArray(data) ? data : []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false));
-  }, [selectedCategory, selectedType, searchQuery]);
+  }, [selectedCategory, mode, searchQuery]);
+
+  function setMode(next) {
+    const nextParams = new URLSearchParams(params);
+    if (next === 'all') nextParams.delete('mode');
+    else nextParams.set('mode', next);
+    setParams(nextParams);
+  }
 
   return (
     <AppFrame showTabs tone="white">
       <div className="px-5 pb-5 pt-6">
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <h1 className="text-[32px] font-bold">Seed Share</h1>
-            <p className="mt-1 text-base text-[#6B6B6B]">Grow your garden together 🌱</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8A3E24]">World cooperative</p>
+            <h1 className="font-display text-[32px] font-bold leading-none text-[#3B1718]">The Exchange</h1>
+            <p className="mt-1 text-sm leading-snug text-[#6B534C]">
+              Shop, trade, gift, and fund ancient, heirloom, and gourmet seed.
+            </p>
           </div>
           {isReady && user ? (
             <button
               type="button"
               aria-label="Create seed listing"
               onClick={() => navigate('/create-seed-listing')}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#10B981]"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#3B1718]"
             >
               <Plus color="#fff" size={24} />
             </button>
@@ -57,25 +89,21 @@ export default function SeedsHome() {
         <div className="mb-4 flex items-center rounded-xl bg-[#F3F4F6] px-4 py-3">
           <Search color="#6B6B6B" size={20} />
           <input
-            placeholder="Search seeds..."
+            placeholder="Search the exchange..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             className="ml-3 flex-1 bg-transparent text-base placeholder:text-[#9CA3AF]"
           />
         </div>
 
-        <div className="mb-4 flex gap-2">
-          {[
-            ['all', 'All'],
-            ['offer', 'Offers'],
-            ['request', 'Requests'],
-          ].map(([value, label]) => (
+        <div className="mb-4 flex gap-2 overflow-x-auto">
+          {modes.map(([value, label]) => (
             <button
               key={value}
               type="button"
-              onClick={() => setSelectedType(value)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                selectedType === value ? 'bg-[#10B981] text-white' : 'bg-[#F3F4F6] text-[#6B6B6B]'
+              onClick={() => setMode(value)}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${
+                mode === value ? 'bg-[#3B1718] text-[#FFF6EF]' : 'bg-[#F6EFEA] text-[#6B534C]'
               }`}
             >
               {label}
@@ -100,9 +128,9 @@ export default function SeedsHome() {
           <GreenSpinner />
         ) : listings.length === 0 ? (
           <p className="mt-10 text-center text-lg text-[#6B6B6B]">
-            No seed listings found.
+            Nothing in this part of the exchange yet.
             <br />
-            Be the first to share!
+            List a line, or back one that is already here.
           </p>
         ) : (
           <div className="flex flex-col gap-4">
@@ -125,21 +153,18 @@ export default function SeedsHome() {
                         </p>
                       ) : null}
                     </div>
-                    <span
-                      className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold ${
-                        listing.listing_type === 'offer' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF3C7] text-[#D97706]'
-                      }`}
-                    >
-                      {listing.listing_type === 'offer' ? 'Offering' : 'Requesting'}
-                    </span>
+                    <ExchangeMark listing={listing} />
                   </div>
                   {listing.description ? <p className="mb-3 line-clamp-2 text-sm text-[#6B6B6B]">{listing.description}</p> : null}
+                  {listing.exchange_type === 'fund' ? (
+                    <div className="mb-3">
+                      <FundMeter listing={listing} />
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      {listing.exchange_type === 'free' ? <Badge className="bg-[#ECFDF5] text-[#059669]">FREE</Badge> : null}
-                      {listing.exchange_type === 'trade' ? <Badge className="bg-[#EFF6FF] text-[#2563EB]">TRADE</Badge> : null}
                       {listing.exchange_type === 'sell' && listing.price ? (
-                        <span className="text-base font-bold text-[#10B981]">${Number(listing.price).toFixed(2)}</span>
+                        <span className="text-base font-bold text-[#3B1718]">${Number(listing.price).toFixed(2)}</span>
                       ) : null}
                       {listing.organic ? <span className="text-[#059669]">🌿 Organic</span> : null}
                       {listing.heirloom ? <span className="text-[#8B5CF6]">👑 Heirloom</span> : null}
@@ -177,9 +202,9 @@ export default function SeedsHome() {
       </div>
 
       {!isReady || !user ? (
-        <div className="sticky bottom-20 bg-[#10B981] px-5 py-4">
-          <Link to="/account/signin" className="block rounded-xl bg-white py-4 text-center text-base font-bold text-[#10B981]">
-            Sign in to share seeds
+        <div className="sticky bottom-20 bg-[#3B1718] px-5 py-4">
+          <Link to="/account/signin" className="block rounded-xl bg-[#FFF6EF] py-4 text-center text-base font-bold text-[#3B1718]">
+            Sign in to list with the cooperative
           </Link>
         </div>
       ) : null}
@@ -193,7 +218,7 @@ function FilterChip({ active, children, onClick }) {
       type="button"
       onClick={onClick}
       className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${
-        active ? 'bg-[#10B981] text-white' : 'bg-[#F3F4F6] text-[#6B6B6B]'
+        active ? 'bg-[#8A3E24] text-white' : 'bg-[#F6EFEA] text-[#6B534C]'
       }`}
     >
       {children}
@@ -201,6 +226,16 @@ function FilterChip({ active, children, onClick }) {
   );
 }
 
-function Badge({ className, children }) {
-  return <span className={`rounded-lg px-2 py-1 text-xs font-semibold ${className}`}>{children}</span>;
+function ExchangeMark({ listing }) {
+  const kind = exchangeKind(listing);
+  const styles = {
+    request: 'bg-[#FEF3C7] text-[#D97706]',
+    fund: 'bg-[#FFF1E8] text-[#8A3E24]',
+    shop: 'bg-[#ECFDF5] text-[#059669]',
+    trade: 'bg-[#EFF6FF] text-[#2563EB]',
+    gift: 'bg-[#F3E8FF] text-[#7C3AED]',
+  };
+  return (
+    <span className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold ${styles[kind]}`}>{exchangeMark(listing)}</span>
+  );
 }

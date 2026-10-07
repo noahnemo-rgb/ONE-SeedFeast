@@ -58,6 +58,18 @@ test('ancient vault listings lead the exchange', () => {
   assert.equal(chufa[0].listing_type, 'offer');
 });
 
+test('fund listings are cooperative pledges', () => {
+  resetCatalog();
+  const funds = filterListings({ exchange: 'fund' });
+  assert.ok(funds.length >= 2);
+  const teff = funds.find((listing) => listing.title === 'Teff');
+  assert.ok(teff);
+  assert.equal(teff.exchange_type, 'fund');
+  assert.ok(Number(teff.funded_amount) > 0);
+  assert.ok(Number(teff.funded_amount) < Number(teff.price));
+  assert.equal(filterListings()[1].title, 'Teff');
+});
+
 test('signup, favorite, and create recipe round trip', async () => {
   resetCatalog();
   const app = new Hono();
