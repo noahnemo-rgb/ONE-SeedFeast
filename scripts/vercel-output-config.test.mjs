@@ -19,7 +19,7 @@ test('the Node runtime is told to call a Web Request handler', () => {
   assert.equal(config.launcherType, 'Nodejs');
   assert.equal(config.handler, 'index.mjs');
   const handler = readFileSync(new URL('../server/vercel-handler.mjs', import.meta.url), 'utf8');
-  assert.match(handler, /export default async function handler\(request\)/);
+  assert.match(handler, /export default async function handler\(request, response\)/);
   assert.doesNotMatch(handler, /export default\s*\{/);
 });
 
