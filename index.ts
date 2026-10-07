@@ -21,6 +21,7 @@ import { getHTMLForErrorPage } from './get-html-for-error-page';
 import { isAuthAction } from './is-auth-action';
 import { askFeast } from './feast/seedfeast-router.js';
 import { API_BASENAME, api } from './route-builder';
+import { mountCatalogApi } from './src/server/catalog.js';
 neonConfig.webSocketConstructor = ws;
 
 const als = new AsyncLocalStorage<{ requestId: string }>();
@@ -226,16 +227,6 @@ if (process.env.AUTH_SECRET) {
 }
 const seedFeastRoot = fileURLToPath(new URL('.', import.meta.url));
 
-app.get('/feast', async (c) => {
-  const html = await readFile(join(seedFeastRoot, 'feast', 'page.html'), 'utf8');
-  return c.html(html);
-});
-
-app.get('/feast/seedfeast-router.js', async (c) => {
-  const source = await readFile(join(seedFeastRoot, 'feast', 'seedfeast-router.js'), 'utf8');
-  return c.body(source, 200, { 'Content-Type': 'text/javascript; charset=utf-8' });
-});
-
 app.get('/vendor/ai-buffer/:file', async (c) => {
   const file = c.req.param('file');
   if (!/^[A-Za-z0-9._-]+\.js$/.test(file)) return c.notFound();
@@ -285,7 +276,13 @@ app.all('/integrations/:path{.+}', (c) => {
   return c.json({ error: 'SeedFeast does not forward integration handles or webhooks.' }, 410);
 });
 
+mountCatalogApi(app);
+
 app.use('/api/auth/*', async (c, next) => {
+  if (!process.env.AUTH_SECRET) {
+    if (c.req.path === '/api/auth/session') return c.json(null);
+    return next();
+  }
   if (isAuthAction(c.req.path)) {
     return authHandler()(c, next);
   }
