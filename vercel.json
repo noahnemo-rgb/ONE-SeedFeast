@@ -3,11 +3,6 @@
   "framework": null,
   "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "outputDirectory": "build/client",
-  "rewrites": [
-    { "source": "/trust", "destination": "/trust/index.html" },
-    { "source": "/privacy", "destination": "/privacy/index.html" },
-    { "source": "/terms", "destination": "/terms/index.html" },
-    { "source": "/((?!assets/|api/).*)", "destination": "/index.html" }
-  ]
+  "devCommand": "npm run dev",
+  "outputDirectory": null
 }
