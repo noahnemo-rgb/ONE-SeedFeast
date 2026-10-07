@@ -15,11 +15,47 @@ test('recipe search matches title and category', () => {
 test('seed listings filter by type and search', () => {
   resetCatalog();
   const requests = filterListings({ type: 'request' });
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0].listing_type, 'request');
+  assert.ok(requests.some((listing) => listing.title.includes('Genovese basil')));
+  assert.ok(requests.every((listing) => listing.listing_type === 'request'));
   const rye = filterListings({ search: 'rye' });
   assert.equal(rye.length, 1);
   assert.equal(rye[0].location_city, 'Madison');
+});
+
+test('ancient vault listings lead the exchange', () => {
+  resetCatalog();
+  const listings = filterListings();
+  assert.equal(listings[0].title, 'Chufa (tiger nut)');
+  assert.equal(listings[0].scientific_name, 'Cyperus esculentus');
+  assert.match(listings[0].origin, /Egypt/);
+  assert.equal(listings[0].exchange_type, 'free');
+  const names = [
+    'Chufa',
+    'Emmer',
+    'Einkorn',
+    'Teff',
+    'Amaranth',
+    'Quinoa',
+    'Fonio',
+    'Sorghum',
+    'Cowpea',
+    'Chickpea',
+    'Lentil',
+    'Flax',
+    'Sesame',
+    'Taro',
+    'Sweet potato',
+    'Cassava',
+  ];
+  for (const name of names) {
+    assert.ok(
+      listings.some((listing) => listing.title.includes(name)),
+      `missing ${name}`,
+    );
+  }
+  const chufa = filterListings({ search: 'cyperus' });
+  assert.equal(chufa.length, 1);
+  assert.equal(chufa[0].listing_type, 'offer');
 });
 
 test('signup, favorite, and create recipe round trip', async () => {

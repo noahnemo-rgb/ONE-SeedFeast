@@ -152,6 +152,7 @@ export default function HomeScreen() {
                   </span>
                   <span className="mt-1 block text-[13px] text-[#6B534C]">
                     {[listing.location_city, listing.location_state].filter(Boolean).join(', ') || 'Community grower'}
+                    {listing.origin ? ` · ${listing.origin}` : ''}
                     {listing.heirloom ? ' · Heirloom' : ''}
                     {listing.category_name ? ` · ${listing.category_name}` : ''}
                   </span>

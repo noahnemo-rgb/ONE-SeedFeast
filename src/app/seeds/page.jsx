@@ -113,6 +113,12 @@ export default function SeedsHome() {
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div>
                       <p className="text-lg font-bold">{listing.title}</p>
+                      {listing.scientific_name ? (
+                        <p className="text-sm italic text-[#6B6B6B]">{listing.scientific_name}</p>
+                      ) : null}
+                      {listing.origin ? (
+                        <p className="mt-0.5 text-xs text-[#6B6B6B]">Origin: {listing.origin}</p>
+                      ) : null}
                       {listing.category_name ? (
                         <p className="mt-1 text-sm text-[#6B6B6B]">
                           {listing.category_icon} {listing.category_name}
@@ -141,7 +147,10 @@ export default function SeedsHome() {
                     {listing.location_city ? (
                       <span className="flex items-center text-[#6B6B6B]">
                         <MapPin size={14} color="#6B6B6B" />
-                        <span className="ml-1">{listing.location_city}</span>
+                        <span className="ml-1">
+                          {listing.location_city}
+                          {listing.location_state ? `, ${listing.location_state}` : ''}
+                        </span>
                       </span>
                     ) : null}
                   </div>
