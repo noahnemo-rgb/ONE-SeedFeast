@@ -1,15 +1,15 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
 import type { Handler } from 'hono/types';
-import updatedFetch from './fetch';
+import updatedFetch from './src/__create/fetch';
 
 const API_BASENAME = '/api';
 const api = new Hono();
 
-// Get current directory
-const __dirname = join(fileURLToPath(new URL('.', import.meta.url)), '../src/app/api');
+// The bundle emits this file under build/server/assets, so a path relative
+// to import.meta.url no longer points at the source tree.
+const __dirname = join(process.cwd(), 'src/app/api');
 if (globalThis.fetch) {
   globalThis.fetch = updatedFetch;
 }
@@ -67,7 +67,9 @@ function getHonoPath(routeFile: string): { name: string; pattern: string }[] {
 async function registerRoutes() {
   const routeFiles = (
     await findRouteFiles(__dirname).catch((error) => {
-      console.error('Error finding route files:', error);
+      if (error?.code !== 'ENOENT') {
+        console.error('Error finding route files:', error);
+      }
       return [];
     })
   )
