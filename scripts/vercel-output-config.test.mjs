@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { createDeploymentRoutes, dispatchRequest } from './vercel-output-config.mjs';
+import { createDeploymentRoutes, createFunctionConfig, dispatchRequest } from './vercel-output-config.mjs';
 
 const staticFiles = new Set(['/index.html', '/assets/app.js', '/_root.data', '/seedfeast-logo.jpg']);
 
@@ -11,6 +12,16 @@ function dispatch(pathname) {
     fileExists: (filePath) => staticFiles.has(filePath),
   });
 }
+
+test('the Node runtime is told to call a Web Request handler', () => {
+  const config = createFunctionConfig();
+  assert.equal(config.useWebApi, true);
+  assert.equal(config.launcherType, 'Nodejs');
+  assert.equal(config.handler, 'index.mjs');
+  const handler = readFileSync(new URL('../server/vercel-handler.mjs', import.meta.url), 'utf8');
+  assert.match(handler, /export default async function handler\(request\)/);
+  assert.doesNotMatch(handler, /export default\s*\{/);
+});
 
 test('homepage is the prerendered document, not the server function', async () => {
   assert.deepEqual(await dispatch('/'), { kind: 'static', pathname: '/index.html' });

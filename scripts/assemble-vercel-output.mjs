@@ -2,7 +2,7 @@ import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promi
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nodeFileTrace } from '@vercel/nft';
-import { createDeploymentConfig } from './vercel-output-config.mjs';
+import { createDeploymentConfig, createFunctionConfig } from './vercel-output-config.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = path.join(root, '.vercel', 'output');
@@ -59,14 +59,7 @@ await cp(
   path.join(functionDir, 'index.mjs'),
 );
 
-const vcConfig = {
-  runtime: 'nodejs22.x',
-  handler: 'index.mjs',
-  launcherType: 'Nodejs',
-  shouldAddHelpers: false,
-  shouldAddSourcemapSupport: true,
-  supportsResponseStreaming: true,
-};
+const vcConfig = createFunctionConfig();
 
 await writeFile(
   path.join(functionDir, '.vc-config.json'),

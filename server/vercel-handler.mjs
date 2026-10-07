@@ -9,8 +9,9 @@ if (!app || typeof app.fetch !== 'function') {
   throw new Error('SeedFeast server build did not export a Hono app.');
 }
 
-export async function fetch(request) {
+// The Node runtime calls this function with a Web Request only when
+// .vc-config.json sets useWebApi. A `{ fetch }` object is not invoked,
+// which is FUNCTION_INVOCATION_FAILED on every server route.
+export default async function handler(request) {
   return app.fetch(request);
 }
-
-export default { fetch };

@@ -39,6 +39,24 @@ export function createDeploymentConfig() {
   };
 }
 
+/**
+ * Node.js function config. `useWebApi` makes Vercel set VERCEL_USE_WEB_API
+ * and call the default export as `(request: Request) => Response`. Without
+ * it, the runtime expects a Node `(req, res)` function and crashes when the
+ * export is anything else.
+ */
+export function createFunctionConfig() {
+  return {
+    runtime: 'nodejs22.x',
+    handler: 'index.mjs',
+    launcherType: 'Nodejs',
+    shouldAddHelpers: false,
+    shouldAddSourcemapSupport: true,
+    supportsResponseStreaming: true,
+    useWebApi: true,
+  };
+}
+
 function applyCaptures(template, match) {
   return template.replace(/\$(\d+)/g, (_, index) => match[Number(index)] ?? '');
 }

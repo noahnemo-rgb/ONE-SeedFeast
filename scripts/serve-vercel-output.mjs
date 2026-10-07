@@ -42,7 +42,10 @@ function staticPath(pathname) {
 }
 
 const handlerModule = await import(pathToFileURL(handlerPath).href);
-const fetchHandler = handlerModule.default?.fetch ?? handlerModule.fetch;
+const fetchHandler = handlerModule.default;
+if (typeof fetchHandler !== 'function') {
+  throw new Error('Vercel function entry must default-export a Web Request handler.');
+}
 
 const server = createServer(async (req, res) => {
   try {

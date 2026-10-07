@@ -17,7 +17,7 @@ Tab navigation requests `/__manifest` and expects JSON. Publishing only `build/c
 `npm run build` still runs `react-router build`, then writes a Build Output API deployment to `.vercel/output`:
 
 - `static/` is the client build (hashed assets and the prerendered `/`).
-- `functions/index.func` runs the Hono server produced at `build/server/index.js`. The function entry is `server/vercel-handler.mjs`. It serves React Router (`/__manifest`, `*.data`, documents) and the Hono routes (`/api/*`, including `/api/seeds/listings`).
+- `functions/index.func` runs the Hono server produced at `build/server/index.js`. The function entry is `server/vercel-handler.mjs`, a default-exported `(request) => Response`. `.vc-config.json` sets `useWebApi: true` so the Node runtime calls that function. Without it, Vercel treats the export as a Node `(req, res)` handler and every server route returns `FUNCTION_INVOCATION_FAILED`. The entry serves React Router (`/__manifest`, `*.data`, documents) and the Hono routes (`/api/*`, including `/api/seeds/listings`).
 - Routing serves a real file when one exists, then sends every other path to that function. There is no catch-all rewrite to `/index.html`.
 
 `vercel.json` overrides the dashboard. Keep these project settings:
