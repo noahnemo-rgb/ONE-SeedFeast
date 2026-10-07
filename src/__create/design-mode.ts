@@ -3,7 +3,15 @@
  * from DOM elements.
  */
 
-import { type GetStyleInfo, initDesignMode } from '../../../../shared/design-mode';
+// Create's editor package (shared/design-mode) is not part of this repo.
+type GetStyleInfo = (resolved: { element: Element }) => {
+  className: string;
+  styles: Record<string, string> | null;
+};
+
+function initDesignMode(_getStyleInfo: GetStyleInfo): () => void {
+  return () => {};
+}
 
 // Registers the <hex-color-picker> custom element used by the design toolbar's
 // background-color dropdown. Loaded conditionally because the package executes
