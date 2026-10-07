@@ -71,7 +71,13 @@ async function filterListings({ category = null, type = null, search = '' } = {}
      WHERE sl.status = 'available'
        AND ($1::int IS NULL OR sl.category_id = $1)
        AND ($2::text IS NULL OR sl.listing_type = $2)
-       AND ($3::text IS NULL OR sl.title ILIKE $3 OR COALESCE(sl.description, '') ILIKE $3)
+       AND (
+         $3::text IS NULL
+         OR sl.title ILIKE $3
+         OR COALESCE(sl.description, '') ILIKE $3
+         OR COALESCE(sl.scientific_name, '') ILIKE $3
+         OR COALESCE(sl.origin, '') ILIKE $3
+       )
      GROUP BY sl.id, u.name, u.image, sc.name, sc.icon, sc.color
      ORDER BY sl.created_at DESC`,
     [category ? Number(category) : null, listingType, needle ? `%${needle}%` : null],

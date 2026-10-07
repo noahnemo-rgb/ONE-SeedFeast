@@ -172,6 +172,8 @@ const schema = [
     difficulty TEXT,
     organic BOOLEAN NOT NULL DEFAULT FALSE,
     heirloom BOOLEAN NOT NULL DEFAULT FALSE,
+    scientific_name TEXT,
+    origin TEXT,
     status TEXT NOT NULL DEFAULT 'available',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
@@ -213,6 +215,8 @@ async function ensureSchema() {
       throw error;
     }
   }
+  await raw('ALTER TABLE seed_listings ADD COLUMN IF NOT EXISTS scientific_name TEXT');
+  await raw('ALTER TABLE seed_listings ADD COLUMN IF NOT EXISTS origin TEXT');
 }
 
 const img = (id, w = 800) =>
@@ -261,6 +265,14 @@ async function seedIfEmpty() {
     ['grower-2', 'Sam Ortiz', null],
     ['grower-3', 'Priya Shah', img('photo-1544005313-94ddf0286df2', 200)],
     ['grower-4', 'Eli Brooks', null],
+    ['grower-5', 'Nour El-Sayed', null],
+    ['grower-6', 'Helen Vogel', null],
+    ['grower-7', 'Dawit Bekele', null],
+    ['grower-8', 'Rosa Quispe', null],
+    ['grower-9', 'Ayo Diallo', null],
+    ['grower-10', 'Mateo Ibarra', null],
+    ['grower-11', 'Leila Haddad', null],
+    ['grower-12', 'Amara Keita', null],
   ];
   for (const [id, name, image] of growers) {
     await raw('INSERT INTO auth_users (id, name, email, image) VALUES ($1, $2, $3, $4)', [
@@ -334,17 +346,33 @@ async function seedIfEmpty() {
   await raw(`INSERT INTO comment_likes (comment_id, user_id) VALUES (1, 'grower-2')`);
 
   const listings = [
-    [1, 'grower-1', 'Brandywine tomato seeds', 'Saved from last summer’s biggest plants. Open-pollinated and happy in a warm bed.', img('photo-1592841200221-a6898f307baa'), 1, '1 packet, about 30 seeds', 'offer', 'free', null, 'Oakland', 'CA', 'Spring', '80 days', 'Medium', true, true, '2026-06-01T12:00:00.000Z'],
-    [2, 'grower-2', 'Looking for Genovese basil', 'Starting a windowsill row. Happy to trade thyme or extra tomato starts.', img('photo-1618375569909-3c8616cf7733'), 2, 'A few starts', 'request', 'trade', null, 'Portland', 'OR', 'Summer', '30 days', 'Easy', true, false, '2026-05-22T12:00:00.000Z'],
-    [3, 'grower-3', 'Mammoth sunflower packets', 'Tall cut flowers and seeds you can toast for the salad bowl later.', img('photo-1470509037663-253afd7f0f51'), 3, '3 packets', 'offer', 'sell', '4.00', 'Austin', 'TX', 'Late spring', '70 days', 'Easy', false, true, '2026-05-14T12:00:00.000Z'],
-    [4, 'grower-4', 'Fall rye for the garden', 'A handful of rye berries to sow as a cover crop or mill for the loaf.', img('photo-1574323347407-f5e1ad6d020b'), 4, '2 cups', 'offer', 'free', null, 'Madison', 'WI', 'Fall', 'Cover crop', 'Easy', true, false, '2026-04-02T12:00:00.000Z'],
+    [1, 'grower-1', 'Brandywine tomato seeds', null, null, 'Saved from last summer’s biggest plants. Open-pollinated and happy in a warm bed.', img('photo-1592841200221-a6898f307baa'), 1, '1 packet, about 30 seeds', 'offer', 'free', null, 'Oakland', 'CA', 'Spring', '80 days', 'Medium', true, true, '2026-06-01T12:00:00.000Z'],
+    [2, 'grower-2', 'Looking for Genovese basil', null, null, 'Starting a windowsill row. Happy to trade thyme or extra tomato starts.', img('photo-1618375569909-3c8616cf7733'), 2, 'A few starts', 'request', 'trade', null, 'Portland', 'OR', 'Summer', '30 days', 'Easy', true, false, '2026-05-22T12:00:00.000Z'],
+    [3, 'grower-3', 'Mammoth sunflower packets', null, null, 'Tall cut flowers and seeds you can toast for the salad bowl later.', img('photo-1470509037663-253afd7f0f51'), 3, '3 packets', 'offer', 'sell', '4.00', 'Austin', 'TX', 'Late spring', '70 days', 'Easy', false, true, '2026-05-14T12:00:00.000Z'],
+    [4, 'grower-4', 'Fall rye for the garden', null, null, 'A handful of rye berries to sow as a cover crop or mill for the loaf.', img('photo-1574323347407-f5e1ad6d020b'), 4, '2 cups', 'offer', 'free', null, 'Madison', 'WI', 'Fall', 'Cover crop', 'Easy', true, false, '2026-04-02T12:00:00.000Z'],
+    [5, 'grower-5', 'Chufa (tiger nut)', 'Cyperus esculentus', 'Egypt — Nile drought staple, grown for tubers', 'Extra tubers from a dry-bed plot. Gifting a handful so another grower can start a chufa row.', img('photo-1518977676601-b53f82aba655'), 1, '12 tubers', 'offer', 'free', null, 'Giza', 'Egypt', 'Warm season', '110 days', 'Easy', true, true, '2026-09-28T12:00:00.000Z'],
+    [6, 'grower-6', 'Emmer wheat', 'Triticum dicoccum', 'Fertile Crescent', 'A jar of hulled emmer saved for replanting. Trading it for another ancient cereal landrace.', img('photo-1500382017468-9049fed747ef'), 4, '1 cup seed grain', 'offer', 'trade', null, 'Gaziantep', 'Türkiye', 'Fall or early spring', '120 days', 'Medium', true, true, '2026-09-27T12:00:00.000Z'],
+    [7, 'grower-6', 'Einkorn', 'Triticum monococcum', 'Anatolia and the Fertile Crescent', 'One of the earliest cultivated wheats. Selling a small packet of saved seed so the line keeps moving.', img('photo-1625246333195-78d9c38ad449'), 4, '1 packet', 'offer', 'sell', '6.00', 'Kastamonu', 'Türkiye', 'Fall or early spring', '130 days', 'Medium', true, true, '2026-09-26T12:00:00.000Z'],
+    [8, 'grower-7', 'Teff', 'Eragrostis tef', 'Ethiopian highlands', 'Tiny highland grain, still passed hand to hand. Sharing an extra spoon of seed, no charge.', img('photo-1536304993881-ff6e9eefa2a6'), 4, '2 tablespoons of seed', 'offer', 'free', null, 'Addis Ababa', 'Ethiopia', 'Warm season', '90 days', 'Medium', true, true, '2026-09-25T12:00:00.000Z'],
+    [9, 'grower-10', 'Amaranth', 'Amaranthus spp.', 'The Americas', 'Heat-loving grain kept across the Americas. Open to a trade for quinoa, maize, or another saved cereal.', img('photo-1501004318641-b39e6451bec6'), 4, '1 packet', 'offer', 'trade', null, 'Puebla', 'Mexico', 'Late spring', '90 days', 'Easy', true, true, '2026-09-24T12:00:00.000Z'],
+    [10, 'grower-8', 'Quinoa', 'Chenopodium quinoa', 'Andean highlands', 'Looking for a handful of true seed to replant a highland line. Will trade amaranth or seed potatoes.', img('photo-1464226184884-fa280b87c399'), 4, 'A handful of seed', 'request', 'trade', null, 'Cusco', 'Peru', 'Cool season', '100 days', 'Medium', true, true, '2026-09-23T12:00:00.000Z'],
+    [11, 'grower-12', 'Fonio', 'Digitaria exilis', 'West Africa', 'A fast grain for thin soils. Gifting a small packet from this year’s saving to anyone who will sow it.', img('photo-1560493676-04071c5f467b'), 4, '1 small packet', 'offer', 'free', null, 'Bamako', 'Mali', 'Rainy season', '70 days', 'Easy', true, true, '2026-09-22T12:00:00.000Z'],
+    [12, 'grower-9', 'Sorghum', 'Sorghum bicolor', 'African savanna', 'Drought-hardy grain from a community plot. Selling a cup of open-pollinated seed for another garden.', img('photo-1530836369250-ef72a3f5cda8'), 4, '1 cup seed', 'offer', 'sell', '5.00', 'Kano', 'Nigeria', 'Warm season', '110 days', 'Easy', true, true, '2026-09-21T12:00:00.000Z'],
+    [13, 'grower-9', 'Cowpea (black-eyed pea)', 'Vigna unguiculata', 'Africa', 'A heat-loving pulse saved from last season. Trading seed for chickpea or another dry-land bean.', img('photo-1523348837708-15d4a09cfac2'), 1, '40 seeds', 'offer', 'trade', null, 'Accra', 'Ghana', 'Warm season', '70 days', 'Easy', true, true, '2026-09-20T12:00:00.000Z'],
+    [14, 'grower-11', 'Chickpea', 'Cicer arietinum', 'Mediterranean and South Asia', 'Extra seed from a long-kept line. Free to a grower who will replant it and pass some on.', img('photo-1416879595882-3373a0480b5b'), 1, '50 seeds', 'offer', 'free', null, 'Aleppo', 'Syria', 'Cool season', '100 days', 'Medium', true, true, '2026-09-19T12:00:00.000Z'],
+    [15, 'grower-11', 'Lentil', 'Lens culinaris', 'Near East', 'A small pulse carried a long way. Selling a packet of saved seed, enough for a trial row.', img('photo-1444858291040-58f756a3bdd6'), 1, '1 packet', 'offer', 'sell', '4.50', 'Diyarbakır', 'Türkiye', 'Cool season', '90 days', 'Easy', true, true, '2026-09-18T12:00:00.000Z'],
+    [16, 'grower-4', 'Flax', 'Linum usitatissimum', 'Near East and the Mediterranean', 'Requesting a spoon of linseed to restart a fiber and oilseed row. Can trade sesame or another small seed.', img('photo-1461354464878-ad92f492a5a0'), 4, 'A spoon of seed', 'request', 'trade', null, 'Madison', 'WI', 'Spring', '100 days', 'Easy', true, true, '2026-09-17T12:00:00.000Z'],
+    [17, 'grower-12', 'Sesame', 'Sesamum indicum', 'Africa and South Asia', 'Leftover seed from a dry-season planting. Sharing it with anyone putting in a sesame row.', img('photo-1471193945509-9ad0617afabf'), 4, '1 packet', 'offer', 'free', null, 'Khartoum', 'Sudan', 'Warm season', '100 days', 'Medium', true, true, '2026-09-16T12:00:00.000Z'],
+    [18, 'grower-3', 'Taro', 'Colocasia esculenta', 'Pacific islands and tropical Asia', 'Passed on as corms, not true seed. Gifting side corms to someone with a wet bed who will divide them.', img('photo-1592419044706-39796d40f98c'), 1, '4 side corms', 'offer', 'free', null, 'Hilo', 'HI', 'Year-round in warm ground', '200 days', 'Medium', true, true, '2026-09-15T12:00:00.000Z'],
+    [19, 'grower-1', 'Sweet potato slips', 'Ipomoea batatas', 'Tropical Americas', 'A long-kept variety passed on as slips. Sharing rooted cuttings from the parent plants.', img('photo-1589927986089-35812388d1f4'), 1, '6 slips', 'offer', 'free', null, 'Kumamoto', 'Japan', 'Warm season', '100 days', 'Easy', true, true, '2026-09-14T12:00:00.000Z'],
+    [20, 'grower-9', 'Cassava cuttings', 'Manihot esculenta', 'Tropical Americas', 'A tropical root kept by woody cuttings. Trading four sticks for taro corms or sweet potato slips.', img('photo-1615485290382-441e4d049cb5'), 1, '4 cuttings', 'offer', 'trade', null, 'Lagos', 'Nigeria', 'Warm wet season', '10–12 months', 'Medium', true, true, '2026-09-13T12:00:00.000Z'],
   ];
   for (const row of listings) {
     await raw(
       `INSERT INTO seed_listings (
-        id, user_id, title, description, image, category_id, quantity, listing_type, exchange_type,
+        id, user_id, title, scientific_name, origin, description, image, category_id, quantity, listing_type, exchange_type,
         price, location_city, location_state, growing_season, days_to_harvest, difficulty, organic, heirloom, created_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
       row,
     );
   }

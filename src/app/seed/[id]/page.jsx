@@ -126,6 +126,9 @@ export default function SeedDetail() {
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h1 className="mb-2 text-[28px] font-bold">{listing.title}</h1>
+            {listing.scientific_name ? (
+              <p className="mb-1 text-base italic text-[#6B6B6B]">{listing.scientific_name}</p>
+            ) : null}
             {listing.category_name ? (
               <p className="text-base text-[#6B6B6B]">
                 {listing.category_icon} {listing.category_name}
@@ -147,6 +150,7 @@ export default function SeedDetail() {
         </div>
         {listing.description ? <p className="mb-5 text-base leading-6 text-[#374151]">{listing.description}</p> : null}
         <div className="mb-5 space-y-3 rounded-xl bg-[#F9FAFB] p-4">
+          <Detail label="Origin" value={listing.origin} />
           <Detail label="Quantity" value={listing.quantity} />
           <Detail label="Growing Season" value={listing.growing_season} />
           <Detail label="Days to Harvest" value={listing.days_to_harvest} />
