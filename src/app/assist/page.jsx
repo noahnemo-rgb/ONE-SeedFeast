@@ -1,12 +1,24 @@
-import { askFeast, CONNECTION_LABELS, SEEDFEAST_SITE } from '../../cook/seedfeast-router.js';
+import { askConnection, AI_PURPOSES, CONNECTION_LABELS, SEEDFEAST_SITE } from '../../cook/seedfeast-router.js';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { AppFrame } from '../components/frame';
 
 const KEY = 'seedfeast_openrouter_key';
 
-export default function FeastScreen() {
-  const [seeds, setSeeds] = useState('');
+const purposes = [
+  ['chat', 'Chat'],
+  ['listing', 'Listing help'],
+  ['coordinate', 'Coordination'],
+];
+
+function initialPurpose(value) {
+  return AI_PURPOSES.includes(value) ? value : 'chat';
+}
+
+export default function AssistScreen() {
+  const [params] = useSearchParams();
+  const [purpose, setPurpose] = useState(() => initialPurpose(params.get('purpose')));
+  const [message, setMessage] = useState(() => params.get('message') || '');
   const [notes, setNotes] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [answer, setAnswer] = useState('');
@@ -32,7 +44,7 @@ export default function FeastScreen() {
     return next;
   }
 
-  async function cookHere(event) {
+  async function askHere(event) {
     event.preventDefault();
     const key = rememberKey();
     setAnswer('');
@@ -40,8 +52,9 @@ export default function FeastScreen() {
     setError('');
     setBusy(true);
     try {
-      const result = await askFeast({
-        seeds,
+      const result = await askConnection({
+        purpose,
+        message,
         notes,
         apiKey: key,
         platform: 'browser',
@@ -50,33 +63,33 @@ export default function FeastScreen() {
           throw new Error('Puter is not available in this browser.');
         },
       });
-      setAnswer(result.recipe);
+      setAnswer(result.reply);
       setConnection(result.connection || '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'SeedFeast could not cook that.');
+      setError(err instanceof Error ? err.message : 'SeedFeast could not answer that.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function cookOnServer() {
+  async function askOnServer() {
     rememberKey();
     setAnswer('');
     setConnection('');
     setError('');
     setBusy(true);
     try {
-      const response = await fetch('/api/feast', {
+      const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seeds, notes }),
+        body: JSON.stringify({ purpose, message, notes }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'The server could not cook that.');
-      setAnswer(data.recipe);
+      if (!response.ok) throw new Error(data.error || 'The server could not answer that.');
+      setAnswer(data.reply);
       setConnection(data.connection || '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'SeedFeast could not cook that.');
+      setError(err instanceof Error ? err.message : 'SeedFeast could not answer that.');
     } finally {
       setBusy(false);
     }
@@ -88,37 +101,57 @@ export default function FeastScreen() {
         <Link to="/" className="mb-4 inline-block font-sans text-sm text-[#6d4c2f]">
           ← SeedFeast home
         </Link>
-        <h1 className="text-4xl">SeedFeast</h1>
+        <h1 className="text-4xl">Cooperative assistant</h1>
         <p className="mt-2 leading-relaxed">
-          From seed to gourmet feast. Cooking goes through ai-buffer, the shared connection for this site ({SEEDFEAST_SITE}). Puter in this browser runs first. A key saved here tries Space Bunny Alpha, then your OpenRouter model. The server key is the last stop and stays on the server.
+          The same ai-buffer connection ({SEEDFEAST_SITE}) answers chat, listing help, and community coordination. This door does not cook. Recipes stay on the feast page.
         </p>
-        <form onSubmit={cookHere}>
-          <label className="mt-4 block font-sans text-sm" htmlFor="seeds">
-            Seeds and ingredients
+        <form onSubmit={askHere}>
+          <div className="mt-4 flex flex-wrap gap-2 font-sans">
+            {purposes.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPurpose(value)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                  purpose === value ? 'bg-[#6d4c2f] text-[#fffaf3]' : 'border border-[#c9b89a] text-[#6d4c2f]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label className="mt-4 block font-sans text-sm" htmlFor="message">
+            {purpose === 'listing' ? 'The line you want to list' : purpose === 'coordinate' ? 'The handoff to arrange' : 'Message'}
           </label>
           <textarea
-            id="seeds"
+            id="message"
             required
-            value={seeds}
-            onChange={(event) => setSeeds(event.target.value)}
-            placeholder="tomato, basil, day-old bread"
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder={
+              purpose === 'listing'
+                ? 'Chufa tubers from a dry bed in Giza, a gift for another grower'
+                : purpose === 'coordinate'
+                  ? 'Trade emmer from Gaziantep for a packet of teff'
+                  : 'How does a fund stay with the grower who keeps the line?'
+            }
             className="mt-1 min-h-28 w-full rounded-md border border-[#c9b89a] bg-[#fffdf8] px-3 py-2"
           />
-          <label className="mt-4 block font-sans text-sm" htmlFor="notes">
+          <label className="mt-4 block font-sans text-sm" htmlFor="assist-notes">
             Notes
           </label>
           <textarea
-            id="notes"
+            id="assist-notes"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="one pan, dinner for two"
-            className="mt-1 min-h-28 w-full rounded-md border border-[#c9b89a] bg-[#fffdf8] px-3 py-2"
+            placeholder="Places, quantities, or who is waiting"
+            className="mt-1 min-h-20 w-full rounded-md border border-[#c9b89a] bg-[#fffdf8] px-3 py-2"
           />
-          <label className="mt-4 block font-sans text-sm" htmlFor="key">
+          <label className="mt-4 block font-sans text-sm" htmlFor="assist-key">
             OpenRouter key, saved in this tab only
           </label>
           <input
-            id="key"
+            id="assist-key"
             type="password"
             autoComplete="off"
             value={apiKey}
@@ -127,15 +160,15 @@ export default function FeastScreen() {
           />
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="submit" disabled={busy} className="rounded-full bg-[#6d4c2f] px-4 py-2.5 font-sans text-[#fffaf3] disabled:opacity-60">
-              Cook here
+              Ask here
             </button>
             <button
               type="button"
               disabled={busy}
-              onClick={cookOnServer}
+              onClick={askOnServer}
               className="rounded-full border border-[#6d4c2f] px-4 py-2.5 font-sans text-[#6d4c2f] disabled:opacity-60"
             >
-              Cook on the server
+              Ask the server
             </button>
           </div>
         </form>
@@ -150,6 +183,11 @@ export default function FeastScreen() {
           </p>
         ) : null}
         {answer ? <pre className="mt-4 whitespace-pre-wrap font-serif">{answer}</pre> : null}
+        <p className="mt-6 font-sans text-sm">
+          <Link to="/feast" className="text-[#6d4c2f] underline">
+            Cook with what you have
+          </Link>
+        </p>
       </main>
     </AppFrame>
   );

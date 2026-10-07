@@ -28,7 +28,7 @@
 		"@tanstack/react-table": "^8.21.2",
 		"@types/babel__core": "^7.20.5",
 		"@vis.gl/react-google-maps": "^0.8.3",
-		"ai-buffer": "github:noahnemo-rgb/ai-buffer-template#d0c7cbc40df991805efaf64223a00fc3fbb72e15",
+		"ai-buffer": "github:noahnemo-rgb/ai-buffer-template#9e7397958d93423d2bba65315fcd88b30caa3e61",
 		"argon2": "^0.43.0",
 		"classnames": "^2.5.1",
 		"clean-stack": "^5.2.0",
