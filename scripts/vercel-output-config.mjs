@@ -57,6 +57,24 @@ export function createFunctionConfig() {
   };
 }
 
+/**
+ * Vercel's Node runtime resolves package exports with its CJS hook and asks
+ * for the `.js` "default" file. Node's own file tracer prefers the
+ * `module-sync` `.mjs` file, so the `.js` sibling never gets copied and the
+ * function dies with "Cannot find module .../dom-export.js".
+ */
+export function addCjsSiblings(files, exists) {
+  const extra = [];
+  for (const file of files) {
+    if (!file.includes('node_modules/') || !file.endsWith('.mjs')) continue;
+    const sibling = `${file.slice(0, -4)}.js`;
+    if (files.has(sibling) || !exists(sibling)) continue;
+    files.add(sibling);
+    extra.push(sibling);
+  }
+  return extra;
+}
+
 function applyCaptures(template, match) {
   return template.replace(/\$(\d+)/g, (_, index) => match[Number(index)] ?? '');
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { createDeploymentRoutes, createFunctionConfig, dispatchRequest } from './vercel-output-config.mjs';
+import { addCjsSiblings, createDeploymentRoutes, createFunctionConfig, dispatchRequest } from './vercel-output-config.mjs';
 
 const staticFiles = new Set(['/index.html', '/assets/app.js', '/_root.data', '/seedfeast-logo.jpg']);
 
@@ -12,6 +12,13 @@ function dispatch(pathname) {
     fileExists: (filePath) => staticFiles.has(filePath),
   });
 }
+
+test('traced esm files also ship the cjs file Vercel resolves', () => {
+  const files = new Set(['node_modules/react-router/dist/development/dom-export.mjs']);
+  const added = addCjsSiblings(files, (file) => file.endsWith('dom-export.js'));
+  assert.deepEqual(added, ['node_modules/react-router/dist/development/dom-export.js']);
+  assert.equal(files.has('node_modules/react-router/dist/development/dom-export.js'), true);
+});
 
 test('the Node runtime is told to call a Web Request handler', () => {
   const config = createFunctionConfig();

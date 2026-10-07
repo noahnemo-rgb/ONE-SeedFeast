@@ -21,7 +21,7 @@ function loadApp() {
 }
 
 function errorText(error) {
-  const message = error instanceof Error ? error.stack || error.message : String(error);
+  const message = error instanceof Error ? error.message : String(error);
   return `seedfeast-handler-error\n${message}`;
 }
 
