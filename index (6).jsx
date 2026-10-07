@@ -195,8 +195,9 @@ export default function HomeScreen() {
           <Text style={styles.heritageEyebrow}>Culinary heritage</Text>
           <Text style={styles.heritageTitle}>Gourmet is the flavor in the seed</Text>
           <Text style={styles.heritageBody}>
-            The wordmark keeps Gourmet for the taste a variety was saved for.
-            Recipes are a side path, for when you cook what you grew or were given.
+            Gourmet names the culinary heritage in the seed — the flavor a variety
+            was kept alive for. Recipes stay here when you cook what you grew or
+            were given.
           </Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/search")}>
             <Text style={styles.heritageLink}>Recipe notes</Text>
