@@ -3,7 +3,7 @@ import nodeConsole from 'node:console';
 import { skipCSRFCheck } from '@auth/core';
 import Credentials from '@auth/core/providers/credentials';
 import { authHandler, initAuthConfig } from '@hono/auth-js';
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import type { Pool } from '@neondatabase/serverless';
 import { hash, verify } from 'argon2';
 import { Hono } from 'hono';
 import { contextStorage, getContext } from 'hono/context-storage';
@@ -15,14 +15,13 @@ import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import { createHonoServer } from 'react-router-hono-server/node';
 import { serializeError } from 'serialize-error';
-import ws from 'ws';
 import NeonAdapter from './adapter';
+import { queryable } from './src/server/db.js';
 import { getHTMLForErrorPage } from './get-html-for-error-page';
 import { isAuthAction } from './is-auth-action';
 import { askFeast } from './feast/seedfeast-router.js';
 import { API_BASENAME, api } from './route-builder';
 import { mountCatalogApi } from './src/server/catalog.js';
-neonConfig.webSocketConstructor = ws;
 
 const als = new AsyncLocalStorage<{ requestId: string }>();
 
@@ -39,10 +38,13 @@ for (const method of ['log', 'info', 'warn', 'error', 'debug'] as const) {
   };
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-const adapter = NeonAdapter(pool);
+const adapter = NeonAdapter(queryable() as unknown as Pool);
+
+if (!process.env.DATABASE_URL && process.env.VERCEL) {
+  console.warn(
+    'DATABASE_URL is unset. Serverless disk is not durable. Set DATABASE_URL to a Postgres connection string so accounts, recipes, and listings persist.',
+  );
+}
 
 const app = new Hono();
 
@@ -73,6 +75,7 @@ if (process.env.CORS_ORIGINS) {
     '/*',
     cors({
       origin: process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()),
+      credentials: true,
     })
   );
 }

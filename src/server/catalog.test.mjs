@@ -1,30 +1,60 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test, { after } from 'node:test';
 import { Hono } from 'hono';
+import { closeDb } from './db.js';
 import { filterListings, filterRecipes, mountCatalogApi, resetCatalog } from './catalog.js';
 
-test('recipe search matches title and category', () => {
-  resetCatalog();
-  const bread = filterRecipes({ categoryId: 2 });
+const dataDir = mkdtempSync(join(tmpdir(), 'seedfeast-catalog-'));
+process.env.SEEDFEAST_DATA_DIR = dataDir;
+delete process.env.DATABASE_URL;
+
+after(async () => {
+  await closeDb();
+  rmSync(dataDir, { recursive: true, force: true });
+});
+
+let gate = Promise.resolve();
+function serial(name, fn) {
+  test(name, async () => {
+    const previous = gate;
+    let release;
+    gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      await fn();
+    } finally {
+      release();
+    }
+  });
+}
+
+serial('recipe search matches title and category', async () => {
+  await resetCatalog();
+  const bread = await filterRecipes({ categoryId: 2 });
   assert.equal(bread.length, 1);
   assert.equal(bread[0].title, 'Seeded honey loaf');
-  const tomato = filterRecipes({ query: 'tomato' });
+  const tomato = await filterRecipes({ query: 'tomato' });
   assert.ok(tomato.length >= 2);
 });
 
-test('seed listings filter by type and search', () => {
-  resetCatalog();
-  const requests = filterListings({ type: 'request' });
+serial('seed listings filter by type and search', async () => {
+  await resetCatalog();
+  const requests = await filterListings({ type: 'request' });
   assert.ok(requests.some((listing) => listing.title.includes('Genovese basil')));
   assert.ok(requests.every((listing) => listing.listing_type === 'request'));
-  const rye = filterListings({ search: 'rye' });
+  const rye = await filterListings({ search: 'rye' });
   assert.equal(rye.length, 1);
   assert.equal(rye[0].location_city, 'Madison');
 });
 
-test('ancient vault listings lead the exchange', () => {
-  resetCatalog();
-  const listings = filterListings();
+serial('ancient vault listings lead the exchange', async () => {
+  await resetCatalog();
+  const listings = await filterListings();
   assert.equal(listings[0].title, 'Chufa (tiger nut)');
   assert.equal(listings[0].scientific_name, 'Cyperus esculentus');
   assert.match(listings[0].origin, /Egypt/);
@@ -53,13 +83,13 @@ test('ancient vault listings lead the exchange', () => {
       `missing ${name}`,
     );
   }
-  const chufa = filterListings({ search: 'cyperus' });
+  const chufa = await filterListings({ search: 'cyperus' });
   assert.equal(chufa.length, 1);
   assert.equal(chufa[0].listing_type, 'offer');
 });
 
-test('signup, favorite, and create recipe round trip', async () => {
-  resetCatalog();
+serial('signup, favorite, and create recipe round trip', async () => {
+  await resetCatalog();
   const app = new Hono();
   mountCatalogApi(app);
 
@@ -101,4 +131,31 @@ test('signup, favorite, and create recipe round trip', async () => {
   assert.equal(body.title, 'Porch pesto');
   assert.equal(body.steps[0].title, 'Blend');
   assert.equal(body.chef.name, 'Cook');
+
+  const listing = await app.request('/api/seeds/listings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: JSON.stringify({
+      title: 'Window basil',
+      listing_type: 'offer',
+      exchange_type: 'free',
+    }),
+  });
+  assert.equal(listing.status, 200);
+  const savedSeed = await app.request('/api/seeds/saved', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: JSON.stringify({ listing_id: 1 }),
+  });
+  assert.equal(savedSeed.status, 200);
+  const savedSeeds = await app.request('/api/seeds/saved', { headers: { cookie } });
+  const savedSeedsBody = await savedSeeds.json();
+  assert.equal(savedSeedsBody[0].title, 'Brandywine tomato seeds');
+
+  const checkout = await app.request('/api/stripe-checkout-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: JSON.stringify({ product: 'premium' }),
+  });
+  assert.equal(checkout.status, 503);
 });

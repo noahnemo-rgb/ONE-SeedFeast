@@ -77,6 +77,9 @@ export default defineConfig({
     aliases(),
     layoutWrapperPlugin(),
   ],
+  ssr: {
+    external: ['pg', '@electric-sql/pglite'],
+  },
   resolve: {
     alias: {
       lodash: 'lodash-es',
