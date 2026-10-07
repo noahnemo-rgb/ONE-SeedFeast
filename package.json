@@ -7,7 +7,7 @@
 		"build": "react-router build",
 		"start": "react-router-serve ./build/server/index.js",
 		"typecheck": "react-router typegen && tsc --noEmit",
-		"test": "node --test feast/seedfeast-router.test.mjs feast/handles.test.mjs src/server/catalog.test.mjs"
+		"test": "node --test feast/seedfeast-router.test.mjs feast/handles.test.mjs src/server/catalog.test.mjs src/server/persist.test.mjs"
 	},
 	"dependencies": {
 		"@auth/core": "^0.37.2",
@@ -15,6 +15,7 @@
 		"@chakra-ui/react": "2.8.2",
 		"@dnd-kit/core": "^6.3.1",
 		"@dnd-kit/sortable": "^10.0.0",
+		"@electric-sql/pglite": "^0.5.8",
 		"@emotion/react": "11.11.4",
 		"@emotion/styled": "11.11.0",
 		"@hono/auth-js": "^1.0.15",
@@ -43,6 +44,7 @@
 		"motion": "^12.7.4",
 		"papaparse": "^5.5.2",
 		"pdfjs-dist": "4.2.67",
+		"pg": "^8.23.1",
 		"react": "^18.2.0",
 		"react-colorful": "^5.6.1",
 		"react-day-picker": "^9.6.7",
