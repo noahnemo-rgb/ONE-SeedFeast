@@ -2,13 +2,12 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { AppFrame } from './components/frame';
-import { exchangeLabel } from './components/exchange';
 
 const ways = [
-  { title: 'Shop', detail: 'Buy packets, roots, and plants from the member who grew them', to: '/seeds?mode=shop' },
-  { title: 'Trade', detail: 'Swap for a variety your garden is missing', to: '/seeds?mode=trade' },
-  { title: 'Gift', detail: 'Pass extras on. No charge, still part of the cooperative', to: '/seeds?mode=gift' },
-  { title: 'Fund', detail: 'Back a member who is keeping a rare line in the ground', to: '/seeds?mode=fund' },
+  { title: 'Sell', detail: 'Packets, roots, and plants at a grower’s price' },
+  { title: 'Trade', detail: 'Swap for a variety you are missing' },
+  { title: 'Share', detail: 'Pass along extras, cuttings, and starts' },
+  { title: 'Gift', detail: 'Give an heirloom away, no charge' },
 ];
 
 const held = [
@@ -20,7 +19,7 @@ const held = [
 
 export default function HomeScreen() {
   useEffect(() => {
-    document.title = 'SeedFeast — cooperative seed exchange';
+    document.title = 'SeedFeast — worldwide seed vault';
   }, []);
 
   const listingsQuery = useQuery({
@@ -40,7 +39,7 @@ export default function HomeScreen() {
     },
   });
 
-  const listings = Array.isArray(listingsQuery.data) ? listingsQuery.data.slice(0, 4) : [];
+  const listings = Array.isArray(listingsQuery.data) ? listingsQuery.data.slice(0, 3) : [];
   const recipes = Array.isArray(recipesQuery.data) ? recipesQuery.data.slice(0, 4) : [];
 
   return (
@@ -52,27 +51,27 @@ export default function HomeScreen() {
           className="mx-auto h-48 w-auto max-w-full object-contain"
         />
         <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em]">
-          Worldwide cooperative
+          Worldwide community vault
         </p>
         <h1 className="font-display mt-2 text-center text-[30px] font-bold leading-[1.15]">
-          The niche exchange for ancient, heirloom, and gourmet seed.
+          A seed vault the world keeps together.
         </h1>
         <p className="mx-auto mt-3 max-w-[34rem] text-center text-[15px] leading-relaxed">
-          A community marketplace with the manners of a shop, a trade board, and a fund. Members sell, trade, gift, and
-          fund the plants the world still has because someone kept them.
+          Sell, trade, share, and gift lost ancient and heirloom seeds, roots, cuttings, and plants.
+          Listings move from grower to grower, a community exchange spread worldwide.
         </p>
         <div className="mt-5 flex flex-col gap-3">
           <Link
             to="/seeds"
             className="rounded-full bg-[#3B1718] px-5 py-3.5 text-center text-base font-semibold text-[#FFF6EF]"
           >
-            Browse the exchange
+            Browse the vault
           </Link>
           <Link
             to="/create-seed-listing"
             className="rounded-full border-2 border-[#3B1718] px-5 py-3.5 text-center text-base font-semibold text-[#3B1718]"
           >
-            List with the cooperative
+            Offer a listing
           </Link>
         </div>
       </section>
@@ -83,7 +82,7 @@ export default function HomeScreen() {
           {ways.map((way) => (
             <Link
               key={way.title}
-              to={way.to}
+              to="/seeds"
               className="rounded-2xl bg-white p-3.5 shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
             >
               <p className="font-display text-base font-semibold text-[#3B1718]">{way.title}</p>
@@ -96,7 +95,7 @@ export default function HomeScreen() {
       <section className="px-5 pt-6">
         <h2 className="font-display text-lg font-semibold">What travels</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#6B534C]">
-          Ancient, heirloom, and gourmet stock. Gourmet is the culinary heritage in the seed. The cooperative keeps that flavor moving.
+          Ancient and heirloom stock, kept alive because someone still has it and is willing to pass it on.
         </p>
         <ul className="mt-3 grid grid-cols-2 gap-2">
           {held.map((item) => (
@@ -110,7 +109,7 @@ export default function HomeScreen() {
 
       <section className="px-5 pt-6">
         <div className="mb-3 flex items-end justify-between gap-3">
-          <h2 className="font-display text-lg font-semibold">On the exchange now</h2>
+          <h2 className="font-display text-lg font-semibold">Open in the exchange</h2>
           <Link to="/seeds" className="shrink-0 text-sm font-semibold text-[#8A3E24]">
             See all
           </Link>
@@ -121,14 +120,14 @@ export default function HomeScreen() {
           <p className="text-sm text-[#6B534C]">
             Listings are on the exchange.{' '}
             <Link to="/seeds" className="font-semibold text-[#8A3E24]">
-              Browse the exchange
+              Browse the vault
             </Link>
           </p>
         ) : listings.length === 0 ? (
           <p className="text-sm text-[#6B534C]">
-            The exchange is ready for the first listing.{' '}
+            The vault is ready for the first listing.{' '}
             <Link to="/create-seed-listing" className="font-semibold text-[#8A3E24]">
-              List one
+              Offer one
             </Link>
           </p>
         ) : (
@@ -169,12 +168,9 @@ export default function HomeScreen() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8A3E24]">Culinary heritage</p>
         <h2 className="font-display mt-1 text-base font-semibold">Gourmet is the flavor in the seed</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#6B534C]">
-          Gourmet names the culinary heritage in the seed — the flavor a variety was kept alive for. ai-buffer is the shared connection for chat, listing help, community coordination, and cooking. Recipes stay on their own door.
+          Gourmet names the culinary heritage in the seed — the flavor a variety was kept alive for. Recipes stay here when you cook what you grew or were given.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
-          <Link to="/assist" className="text-[#8A3E24] underline decoration-[#E7C2B2] underline-offset-4">
-            Chat, listings, and coordination
-          </Link>
           <Link to="/feast" className="text-[#8A3E24] underline decoration-[#E7C2B2] underline-offset-4">
             Cook with what you have
           </Link>
@@ -199,4 +195,13 @@ export default function HomeScreen() {
       </section>
     </AppFrame>
   );
+}
+
+function exchangeLabel(listing) {
+  if (listing.listing_type === 'request') return 'Looking for';
+  if (listing.exchange_type === 'sell') {
+    return listing.price ? `$${Number(listing.price).toFixed(2)}` : 'Sell';
+  }
+  if (listing.exchange_type === 'trade') return 'Trade';
+  return 'Gift';
 }

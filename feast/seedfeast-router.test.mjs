@@ -80,10 +80,15 @@ test("chat, listing help, and coordination use the same connection without a rec
     assert.equal(result.connection, "space-bunny");
     assert.equal(system, prompt);
     assert.equal(system.includes("feast recipe"), false);
+    assert.equal(/cooperative|\bshop\b|\bfund\b|niche|trade board/i.test(system), false);
+    assert.match(system, /sell/);
+    assert.match(system, /trade/);
+    assert.match(system, /share/);
+    assert.match(system, /gift/);
   }
 });
 
-test("an empty cooperative question does not call a model", async () => {
+test("an empty question does not call a model", async () => {
   let called = false;
   await assert.rejects(
     () =>

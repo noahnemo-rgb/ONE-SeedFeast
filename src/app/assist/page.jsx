@@ -101,7 +101,7 @@ export default function AssistScreen() {
         <Link to="/" className="mb-4 inline-block font-sans text-sm text-[#6d4c2f]">
           ← SeedFeast home
         </Link>
-        <h1 className="text-4xl">Cooperative assistant</h1>
+        <h1 className="text-4xl">selling, trading, sharing, and gifting of lost ancient and heirloom seeds, roots, cuttings, and plants</h1>
         <p className="mt-2 leading-relaxed">
           The same ai-buffer connection ({SEEDFEAST_SITE}) answers chat, listing help, and community coordination. This door does not cook. Recipes stay on the feast page.
         </p>
@@ -133,7 +133,7 @@ export default function AssistScreen() {
                 ? 'Chufa tubers from a dry bed in Giza, a gift for another grower'
                 : purpose === 'coordinate'
                   ? 'Trade emmer from Gaziantep for a packet of teff'
-                  : 'How does a fund stay with the grower who keeps the line?'
+                  : 'selling, trading, sharing, and gifting of lost ancient and heirloom seeds, roots, cuttings, and plants'
             }
             className="mt-1 min-h-28 w-full rounded-md border border-[#c9b89a] bg-[#fffdf8] px-3 py-2"
           />

@@ -58,16 +58,28 @@ test('ancient vault listings lead the exchange', () => {
   assert.equal(chufa[0].listing_type, 'offer');
 });
 
-test('fund listings are cooperative pledges', () => {
+test('teff is shared and sorghum is sold', () => {
   resetCatalog();
-  const funds = filterListings({ exchange: 'fund' });
-  assert.ok(funds.length >= 2);
-  const teff = funds.find((listing) => listing.title === 'Teff');
+  const listings = filterListings();
+  assert.equal(listings.some((listing) => listing.exchange_type === 'fund'), false);
+  const teff = listings.find((listing) => listing.title === 'Teff');
   assert.ok(teff);
-  assert.equal(teff.exchange_type, 'fund');
-  assert.ok(Number(teff.funded_amount) > 0);
-  assert.ok(Number(teff.funded_amount) < Number(teff.price));
-  assert.equal(filterListings()[1].title, 'Teff');
+  assert.equal(teff.exchange_type, 'free');
+  assert.equal(teff.price, null);
+  assert.equal(teff.quantity, '2 tablespoons of seed');
+  assert.equal(
+    teff.description,
+    'Tiny highland grain, still passed hand to hand. Sharing an extra spoon of seed, no charge.',
+  );
+  const sorghum = listings.find((listing) => listing.title === 'Sorghum');
+  assert.ok(sorghum);
+  assert.equal(sorghum.exchange_type, 'sell');
+  assert.equal(sorghum.price, '5.00');
+  assert.equal(sorghum.quantity, '1 cup seed');
+  assert.equal(
+    sorghum.description,
+    'Drought-hardy grain from a community plot. Selling a cup of open-pollinated seed for another garden.',
+  );
 });
 
 test('signup, favorite, and create recipe round trip', async () => {

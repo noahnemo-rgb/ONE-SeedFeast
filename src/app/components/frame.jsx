@@ -4,7 +4,7 @@ import { Bookmark, Home, Leaf, Search, User } from 'lucide-react';
 const tabs = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/search', label: 'Search', icon: Search },
-  { to: '/seeds', label: 'Exchange', icon: Leaf },
+  { to: '/seeds', label: 'Seeds', icon: Leaf },
   { to: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { to: '/profile', label: 'Profile', icon: User },
 ];
