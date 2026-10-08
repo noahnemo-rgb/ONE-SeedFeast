@@ -1,7 +1,6 @@
 import { ChevronLeft, MapPin, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { exchangeMark, FundMeter } from '../../components/exchange';
 import { AppFrame, GreenSpinner } from '../../components/frame';
 import { useSession } from '../../components/session';
 
@@ -136,21 +135,15 @@ export default function SeedDetail() {
               </p>
             ) : null}
           </div>
-          <span className="rounded-2xl bg-[#FFF1E8] px-4 py-2 text-sm font-semibold text-[#8A3E24]">
-            {exchangeMark(listing)}
+          <span className={`rounded-2xl px-4 py-2 text-sm font-semibold ${listing.listing_type === 'offer' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF3C7] text-[#D97706]'}`}>
+            {listing.listing_type === 'offer' ? 'Offering' : 'Requesting'}
           </span>
         </div>
-        {listing.exchange_type === 'fund' ? (
-          <div className="mb-5 rounded-xl bg-[#FFF6EF] p-4">
-            <FundMeter listing={listing} />
-            <p className="mt-3 text-sm leading-6 text-[#6B534C]">
-              Members back the work of keeping this line. Message the grower to add your share. The pledge stays with the person doing the keeping.
-            </p>
-          </div>
-        ) : null}
         <div className="mb-5 flex flex-wrap items-center gap-3">
+          {listing.exchange_type === 'free' ? <span className="rounded-xl bg-[#ECFDF5] px-3 py-1.5 text-sm font-semibold text-[#059669]">FREE</span> : null}
+          {listing.exchange_type === 'trade' ? <span className="rounded-xl bg-[#EFF6FF] px-3 py-1.5 text-sm font-semibold text-[#2563EB]">TRADE</span> : null}
           {listing.exchange_type === 'sell' && listing.price ? (
-            <span className="text-2xl font-bold text-[#3B1718]">${Number(listing.price).toFixed(2)}</span>
+            <span className="text-2xl font-bold text-[#10B981]">${Number(listing.price).toFixed(2)}</span>
           ) : null}
           {listing.organic ? <span className="text-sm text-[#059669]">🌿 Organic</span> : null}
           {listing.heirloom ? <span className="text-sm text-[#8B5CF6]">👑 Heirloom</span> : null}
@@ -158,10 +151,10 @@ export default function SeedDetail() {
         {listing.description ? <p className="mb-5 text-base leading-6 text-[#374151]">{listing.description}</p> : null}
         <p className="mb-5">
           <Link
-            to={`/assist?purpose=coordinate&message=${encodeURIComponent(`Coordinate ${listing.title}${listing.scientific_name ? ` (${listing.scientific_name})` : ''}. ${listing.exchange_type === 'fund' ? 'This is a community fund.' : listing.exchange_type === 'trade' ? 'This is a trade.' : listing.exchange_type === 'sell' ? 'This is a shop listing.' : 'This is a gift.'}`)}`}
+            to={`/assist?purpose=coordinate&message=${encodeURIComponent(`${listing.title}${listing.scientific_name ? ` (${listing.scientific_name})` : ''}. selling, trading, sharing, and gifting of lost ancient and heirloom seeds, roots, cuttings, and plants`)}`}
             className="text-sm font-semibold text-[#8A3E24]"
           >
-            Coordinate this listing with the cooperative
+            selling, trading, sharing, and gifting of lost ancient and heirloom seeds, roots, cuttings, and plants
           </Link>
         </p>
         <div className="mb-5 space-y-3 rounded-xl bg-[#F9FAFB] p-4">
@@ -268,7 +261,7 @@ export default function SeedDetail() {
             <input
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              placeholder={listing.exchange_type === 'fund' ? 'Tell them how you want to back this line...' : 'Message the grower...'}
+              placeholder="Message the grower..."
               className="flex-1 rounded-xl bg-[#F3F4F6] px-4 py-3"
             />
             <button type="button" disabled={sendingMessage} onClick={sendMessage} className="rounded-xl bg-[#10B981] px-4 font-semibold text-white">

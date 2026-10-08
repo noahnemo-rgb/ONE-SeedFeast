@@ -54,8 +54,8 @@ export default function CreateSeedListing() {
       setError('Please enter a title');
       return;
     }
-    if ((formData.exchange_type === 'sell' || formData.exchange_type === 'fund') && !formData.price) {
-      setError(formData.exchange_type === 'fund' ? 'Please enter a funding goal' : 'Please enter a price');
+    if (formData.exchange_type === 'sell' && !formData.price) {
+      setError('Please enter a price');
       return;
     }
     setLoading(true);
@@ -80,7 +80,7 @@ export default function CreateSeedListing() {
     return (
       <AppFrame>
         <div className="px-8 py-24 text-center">
-          <p className="mb-2 text-xl font-semibold">Sign in to list with the cooperative</p>
+          <p className="mb-2 text-xl font-semibold">Sign in to share seeds</p>
           <Link to="/account/signin" className="mt-4 inline-block rounded-xl bg-[#10B981] px-6 py-3 font-bold text-white">
             Sign in
           </Link>
@@ -95,7 +95,7 @@ export default function CreateSeedListing() {
         <button type="button" aria-label="Back" onClick={() => navigate(-1)}>
           <ChevronLeft color="#000" size={28} />
         </button>
-        <h1 className="text-lg font-bold">List with the cooperative</h1>
+        <h1 className="text-lg font-bold">Create Listing</h1>
         <span className="w-7" />
       </header>
       <div className="space-y-5 px-5 py-5 pb-28">
@@ -123,11 +123,11 @@ export default function CreateSeedListing() {
         </div>
         <div>
           <FieldLabel>Title *</FieldLabel>
-          <input className={field} placeholder="e.g., Chufa tubers from a dry bed" value={formData.title} onChange={(event) => setField({ title: event.target.value })} />
+          <input className={field} placeholder="e.g., Organic Tomato Seeds" value={formData.title} onChange={(event) => setField({ title: event.target.value })} />
         </div>
         <div>
           <FieldLabel>Description</FieldLabel>
-          <textarea className={`${field} h-24`} placeholder="A shop packet, a trade, a gift, or a fund to keep the line in the ground." value={formData.description} onChange={(event) => setField({ description: event.target.value })} />
+          <textarea className={`${field} h-24`} placeholder="Tell us about these seeds..." value={formData.description} onChange={(event) => setField({ description: event.target.value })} />
           <Link to="/assist?purpose=listing" className="mt-2 inline-block text-sm font-semibold text-[#8A3E24]">
             Ask for help writing this listing
           </Link>
@@ -149,15 +149,12 @@ export default function CreateSeedListing() {
             ))}
           </div>
         </div>
-        <Choice label="I want to *" value={formData.listing_type} onChange={(listing_type) => setField({ listing_type })} options={[['offer', 'Offer a line'], ['request', 'Looking for']]} />
-        <Choice label="How it moves *" value={formData.exchange_type} onChange={(exchange_type) => setField({ exchange_type })} options={[['free', 'Gift'], ['trade', 'Trade'], ['sell', 'Shop'], ['fund', 'Fund']]} />
-        {formData.exchange_type === 'sell' || formData.exchange_type === 'fund' ? (
+        <Choice label="I want to *" value={formData.listing_type} onChange={(listing_type) => setField({ listing_type })} options={[['offer', 'Offer Seeds'], ['request', 'Request Seeds']]} />
+        <Choice label="Exchange Type *" value={formData.exchange_type} onChange={(exchange_type) => setField({ exchange_type })} options={[['free', 'Free'], ['trade', 'Trade'], ['sell', 'Sell']]} />
+        {formData.exchange_type === 'sell' ? (
           <div>
-            <FieldLabel>{formData.exchange_type === 'fund' ? 'Funding goal *' : 'Price *'}</FieldLabel>
+            <FieldLabel>Price *</FieldLabel>
             <input className={field} placeholder="0.00" inputMode="decimal" value={formData.price} onChange={(event) => setField({ price: event.target.value })} />
-            {formData.exchange_type === 'fund' ? (
-              <p className="mt-2 text-sm text-[#6B534C]">Members back this amount so you can keep the line. Message them to collect the pledge.</p>
-            ) : null}
           </div>
         ) : null}
         <div>
@@ -185,8 +182,8 @@ export default function CreateSeedListing() {
         {error ? <p className="text-sm text-[#B91C1C]">{error}</p> : null}
       </div>
       <div className="sticky bottom-0 border-t border-[#E5E7EB] bg-white px-5 py-4">
-        <button type="button" disabled={loading} onClick={handleSubmit} className="w-full rounded-xl bg-[#3B1718] py-4 text-base font-bold text-[#FFF6EF] disabled:opacity-60">
-          {loading ? 'Creating...' : 'Publish to the exchange'}
+        <button type="button" disabled={loading} onClick={handleSubmit} className="w-full rounded-xl bg-[#10B981] py-4 text-base font-bold text-white disabled:opacity-60">
+          {loading ? 'Creating...' : 'Create Listing'}
         </button>
       </div>
     </AppFrame>
@@ -201,14 +198,14 @@ function Choice({ label, value, onChange, options }) {
   return (
     <div>
       <FieldLabel>{label}</FieldLabel>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-3">
         {options.map(([option, text]) => (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            className={`rounded-xl px-4 py-3.5 text-sm font-semibold ${
-              value === option ? 'bg-[#3B1718] text-[#FFF6EF]' : 'bg-[#F6EFEA] text-[#6B534C]'
+            className={`flex-1 rounded-xl py-3.5 text-sm font-semibold ${
+              value === option ? 'bg-[#10B981] text-white' : 'bg-[#F3F4F6] text-[#6B6B6B]'
             }`}
           >
             {text}
