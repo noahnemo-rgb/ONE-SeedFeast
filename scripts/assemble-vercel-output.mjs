@@ -1,8 +1,9 @@
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nodeFileTrace } from '@vercel/nft';
-import { createDeploymentConfig } from './vercel-output-config.mjs';
+import { addCjsSiblings, createDeploymentConfig, createFunctionConfig } from './vercel-output-config.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = path.join(root, '.vercel', 'output');
@@ -21,21 +22,36 @@ await rm(outputDir, { recursive: true, force: true });
 await mkdir(staticDir, { recursive: true });
 await cp(clientDir, staticDir, { recursive: true, dereference: true });
 
-const traced = await nodeFileTrace([serverEntry], {
-  base: root,
-  processCwd: root,
-});
+// The Vercel Node runtime resolves packages through its CJS hook
+// (resolveForCJSWithHooks). That hook selects the package "default" `.js`
+// file, while `@vercel/nft` on Node 22 follows `module-sync` and only copies
+// the `.mjs`. The missing file is the production crash:
+// Cannot find module '/var/task/node_modules/react-router/dist/development/dom-export.js'
+const traceBase = { base: root, processCwd: root };
+const tracedFiles = new Set();
 
-for (const warning of traced.warnings) {
-  console.warn(`nft: ${warning.message}`);
+function rememberTrace(result) {
+  for (const warning of result.warnings) {
+    console.warn(`nft: ${warning.message}`);
+  }
+  for (const file of result.fileList) {
+    const relativeFile = path.isAbsolute(file) ? path.relative(root, file) : file;
+    if (!relativeFile || relativeFile.startsWith('..') || path.isAbsolute(relativeFile)) continue;
+    tracedFiles.add(relativeFile);
+  }
+}
+
+rememberTrace(await nodeFileTrace([serverEntry], traceBase));
+let pending = [serverEntry];
+for (let pass = 0; pass < 5 && pending.length > 0; pass += 1) {
+  const siblings = addCjsSiblings(tracedFiles, (file) => existsSync(path.join(root, file)));
+  pending = siblings.map((file) => path.join(root, file));
+  if (pending.length === 0) break;
+  rememberTrace(await nodeFileTrace(pending, traceBase));
 }
 
 let copied = 0;
-for (const file of traced.fileList) {
-  const relativeFile = path.isAbsolute(file) ? path.relative(root, file) : file;
-  if (!relativeFile || relativeFile.startsWith('..') || path.isAbsolute(relativeFile)) {
-    continue;
-  }
+for (const relativeFile of tracedFiles) {
   const source = path.join(root, relativeFile);
   const destination = path.join(functionDir, relativeFile);
   await mkdir(path.dirname(destination), { recursive: true });
@@ -59,14 +75,7 @@ await cp(
   path.join(functionDir, 'index.mjs'),
 );
 
-const vcConfig = {
-  runtime: 'nodejs22.x',
-  handler: 'index.mjs',
-  launcherType: 'Nodejs',
-  shouldAddHelpers: false,
-  shouldAddSourcemapSupport: true,
-  supportsResponseStreaming: true,
-};
+const vcConfig = createFunctionConfig();
 
 await writeFile(
   path.join(functionDir, '.vc-config.json'),

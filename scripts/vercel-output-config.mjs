@@ -39,6 +39,42 @@ export function createDeploymentConfig() {
   };
 }
 
+/**
+ * Node.js function config. `useWebApi` makes Vercel set VERCEL_USE_WEB_API
+ * and call the default export as `(request: Request) => Response`. Without
+ * it, the runtime expects a Node `(req, res)` function and crashes when the
+ * export is anything else.
+ */
+export function createFunctionConfig() {
+  return {
+    runtime: 'nodejs22.x',
+    handler: 'index.mjs',
+    launcherType: 'Nodejs',
+    shouldAddHelpers: false,
+    shouldAddSourcemapSupport: true,
+    supportsResponseStreaming: true,
+    useWebApi: true,
+  };
+}
+
+/**
+ * Vercel's Node runtime resolves package exports with its CJS hook and asks
+ * for the `.js` "default" file. Node's own file tracer prefers the
+ * `module-sync` `.mjs` file, so the `.js` sibling never gets copied and the
+ * function dies with "Cannot find module .../dom-export.js".
+ */
+export function addCjsSiblings(files, exists) {
+  const extra = [];
+  for (const file of files) {
+    if (!file.includes('node_modules/') || !file.endsWith('.mjs')) continue;
+    const sibling = `${file.slice(0, -4)}.js`;
+    if (files.has(sibling) || !exists(sibling)) continue;
+    files.add(sibling);
+    extra.push(sibling);
+  }
+  return extra;
+}
+
 function applyCaptures(template, match) {
   return template.replace(/\$(\d+)/g, (_, index) => match[Number(index)] ?? '');
 }

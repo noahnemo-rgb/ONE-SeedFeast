@@ -42,11 +42,21 @@ if (listingsRoute.kind !== 'function' || listingsRoute.pathname !== '/api/seeds/
 }
 
 const functionDir = path.dirname(handlerPath);
+const functionConfig = JSON.parse(
+  await readFile(path.join(functionDir, '.vc-config.json'), 'utf8'),
+);
+if (functionConfig.useWebApi !== true) {
+  throw new Error(
+    'Vercel only invokes a Web Request default export when useWebApi is true. Without it the function crashes with FUNCTION_INVOCATION_FAILED.',
+  );
+}
 process.chdir(functionDir);
 const handlerModule = await import(pathToFileURL(handlerPath).href);
-const fetchHandler = handlerModule.default?.fetch ?? handlerModule.fetch;
+const fetchHandler = handlerModule.default;
 if (typeof fetchHandler !== 'function') {
-  throw new Error('Vercel function entry did not export fetch().');
+  throw new Error(
+    'Vercel calls the default export as a function. An object such as { fetch } is not invoked.',
+  );
 }
 
 async function callServer(pathname, search = '') {
