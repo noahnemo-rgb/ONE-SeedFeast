@@ -69,6 +69,12 @@ function assertNotHtml(label, body) {
 }
 
 const homepageHtml = await readFile(path.join(staticDir, 'index.html'), 'utf8');
+if (homepageHtml.includes('dev-error-overlay.js') || homepageHtml.includes('/src/__create/favicon.png')) {
+  throw new Error('Prerendered index.html still requests a missing dev overlay or favicon.');
+}
+if (!(await fileExists('/favicon.ico'))) {
+  throw new Error('Expected public/favicon.ico to be served as a static file.');
+}
 const versionMatch = homepageHtml.match(/"version":\s*"([^"]+)"/);
 if (!versionMatch) {
   throw new Error('Prerendered index.html did not include a React Router manifest version.');

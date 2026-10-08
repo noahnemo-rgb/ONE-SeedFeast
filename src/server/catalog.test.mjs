@@ -82,6 +82,30 @@ test('teff is shared and sorghum is sold', () => {
   );
 });
 
+test('a signup cookie does not open a different account after the catalog resets', async () => {
+  resetCatalog();
+  const app = new Hono();
+  mountCatalogApi(app);
+  const first = await app.request('/api/account/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'one@seedfeast.test', password: 'garden', name: 'One' }),
+  });
+  const firstUser = (await first.json()).user;
+  const cookie = first.headers.get('set-cookie')?.match(/sf_user=[^;]+/)?.[0] || '';
+  resetCatalog();
+  const second = await app.request('/api/account/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'two@seedfeast.test', password: 'garden', name: 'Two' }),
+  });
+  const secondUser = (await second.json()).user;
+  assert.notEqual(firstUser.id, secondUser.id);
+  assert.doesNotMatch(firstUser.id, /^u\d+$/);
+  const session = await app.request('/api/account/session', { headers: { cookie } });
+  assert.deepEqual(await session.json(), { user: null });
+});
+
 test('signup, favorite, and create recipe round trip', async () => {
   resetCatalog();
   const app = new Hono();
