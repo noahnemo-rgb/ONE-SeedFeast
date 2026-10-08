@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 async function postJson(path, body) {
@@ -24,18 +25,22 @@ export function useSession() {
     },
   });
 
-  async function refresh(path, body) {
+  const refresh = useCallback(async (path, body) => {
     const data = await postJson(path, body);
     await queryClient.invalidateQueries({ queryKey: ['session'] });
     return data;
-  }
+  }, [queryClient]);
+
+  const signIn = useCallback((body) => refresh('/api/account/signin', body), [refresh]);
+  const signUp = useCallback((body) => refresh('/api/account/signup', body), [refresh]);
+  const signOut = useCallback(() => refresh('/api/account/signout', {}), [refresh]);
 
   return {
     user: query.data?.user ?? null,
     isAuthenticated: Boolean(query.data?.user),
     isReady: query.isFetched,
-    signIn: (body) => refresh('/api/account/signin', body),
-    signUp: (body) => refresh('/api/account/signup', body),
-    signOut: () => refresh('/api/account/signout', {}),
+    signIn,
+    signUp,
+    signOut,
   };
 }

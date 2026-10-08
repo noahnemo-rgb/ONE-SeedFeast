@@ -705,7 +705,6 @@ function createSeed() {
     nextCommentId: 2,
     nextReviewId: 2,
     nextStepId: 12,
-    nextUserId: 1,
     nextChefId: 4,
   };
 }
@@ -877,7 +876,9 @@ export function mountCatalogApi(app) {
       return c.json({ error: 'EmailCreateAccount' }, 409);
     }
     const user = {
-      id: `u${state.nextUserId++}`,
+      // Sequential ids (u1, u2) collide across serverless isolates and a cookie
+      // from one isolate opens a different person's account on another.
+      id: `u_${randomBytes(16).toString('hex')}`,
       email,
       name: name || email.split('@')[0],
       image: null,
