@@ -92,6 +92,7 @@
     <main>
       <h1>SeedFeast</h1>
       <p>From seed to gourmet feast. Puter in this browser runs first. A key saved here tries Space Bunny Alpha, then your OpenRouter model. The server key is the last stop and stays on the server.</p>
+      <ul id="providers"></ul>
       <form id="cook-form">
         <label for="seeds">Seeds and ingredients</label>
         <textarea id="seeds" name="seeds" required placeholder="tomato, basil, day-old bread"></textarea>
@@ -110,15 +111,34 @@
     <script src="https://js.puter.com/v2/" async></script>
     <script type="module">
       import { askFeast } from "/feast/seedfeast-router.js";
+      import {
+        createLocalStorageStore,
+        createMemoryKeyStore,
+        createMemoryStore,
+        createProviderSelectionStore,
+        loadDashboard,
+      } from "ai-buffer";
 
-      const KEY = "seedfeast_openrouter_key";
+      const LEGACY_KEY = "seedfeast_openrouter_key";
+      try {
+        sessionStorage.removeItem(LEGACY_KEY);
+      } catch {
+        /* The key is not stored. */
+      }
+      const memory = createMemoryKeyStore("openrouter");
+      let selection;
+      try {
+        selection = createProviderSelectionStore(createLocalStorageStore());
+      } catch {
+        selection = createProviderSelectionStore(createMemoryStore());
+      }
       const form = document.querySelector("#cook-form");
       const keyInput = document.querySelector("#key");
       const answer = document.querySelector("#answer");
       const error = document.querySelector("#error");
       const cook = document.querySelector("#cook");
       const server = document.querySelector("#server");
-      keyInput.value = sessionStorage.getItem(KEY) ?? "";
+      const providers = document.querySelector("#providers");
 
       function seedsFromForm() {
         return {
@@ -127,11 +147,81 @@
         };
       }
 
-      function rememberKey() {
+      async function rememberKey() {
         const apiKey = keyInput.value.trim();
-        if (apiKey) sessionStorage.setItem(KEY, apiKey);
-        else sessionStorage.removeItem(KEY);
+        if (apiKey) await memory.setKey(apiKey);
+        else await memory.clearKey();
         return apiKey;
+      }
+
+      async function selectedFields() {
+        const chosen = await selection.getSelection();
+        if (!chosen || chosen.provider === "puter") return {};
+        return { provider: chosen.provider, model: chosen.model };
+      }
+
+      async function drawProviders() {
+        let probe = {
+          puterSignedIn: false,
+          openrouterKey: false,
+          gatewayKey: false,
+          geminiKey: false,
+          nvidiaKey: false,
+          llmapiKey: false,
+          keyHints: {},
+        };
+        try {
+          const response = await fetch("/api/ai/providers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          if (response.ok) probe = { ...probe, ...(await response.json()) };
+        } catch {
+          /* Rows still list the providers. */
+        }
+        const memoryKey = await memory.getKey();
+        if (memoryKey && memoryKey.length >= 4) {
+          const tail = memoryKey.slice(-4);
+          probe.openrouterKey = true;
+          probe.keyHints = { ...probe.keyHints, openrouter: tail, "space-bunny": tail };
+        }
+        const rows = await loadDashboard(selection, probe);
+        providers.replaceChildren();
+        for (const row of rows) {
+          const item = document.createElement("li");
+          item.dataset.active = row.activeLabel ? "true" : "false";
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = row.label;
+          button.addEventListener("click", async () => {
+            await selection.setProvider(row.id);
+            await drawProviders();
+          });
+          const status = document.createElement("span");
+          status.textContent = row.status;
+          const hint = document.createElement("span");
+          hint.textContent = row.keyHint;
+          const active = document.createElement("span");
+          active.textContent = row.activeLabel;
+          const label = document.createElement("label");
+          const modelName = document.createElement("span");
+          modelName.textContent = row.modelLabel;
+          const input = document.createElement("input");
+          input.value = row.model;
+          input.autocomplete = "off";
+          input.addEventListener("change", async () => {
+            try {
+              await selection.setModel(row.id, input.value);
+            } catch {
+              /* A key-shaped model is rejected. */
+            }
+            await drawProviders();
+          });
+          label.append(modelName, input);
+          item.append(button, status, hint, active, label);
+          providers.append(item);
+        }
       }
 
       function setBusy(busy) {
@@ -139,23 +229,60 @@
         server.disabled = busy;
       }
 
+      async function postFeast(extra) {
+        const response = await fetch("/api/feast", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...seedsFromForm(), ...extra }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "The server could not cook that.");
+        answer.textContent = data.recipe;
+      }
+
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const apiKey = rememberKey();
+        const apiKey = await rememberKey();
         answer.textContent = "";
         error.textContent = "";
         setBusy(true);
         try {
-          const result = await askFeast({
-            ...seedsFromForm(),
-            apiKey,
-            platform: "browser",
-            loadPuter: async () => {
-              if (window.puter?.ai?.chat) return window.puter;
-              throw new Error("Puter is not available in this browser.");
-            },
-          });
-          answer.textContent = result.recipe;
+          const selected = await selectedFields();
+          if (selected.provider) {
+            const byok =
+              apiKey && (selected.provider === "openrouter" || selected.provider === "space-bunny") ? apiKey : "";
+            await postFeast({ ...selected, ...(byok ? { byok } : {}) });
+            return;
+          }
+          try {
+            const result = await askFeast({
+              ...seedsFromForm(),
+              platform: "browser",
+              loadPuter: async () => {
+                if (window.puter?.ai?.chat) return window.puter;
+                throw new Error("Puter is not available in this browser.");
+              },
+            });
+            answer.textContent = result.recipe;
+          } catch (err) {
+            if (!apiKey) throw err;
+            await postFeast({ byok: apiKey });
+          }
+        } catch (err) {
+          error.textContent = err instanceof Error ? err.message : "SeedFeast could not cook that.";
+        } finally {
+          setBusy(false);
+          drawProviders();
+        }
+      });
+
+      server.addEventListener("click", async () => {
+        await rememberKey();
+        answer.textContent = "";
+        error.textContent = "";
+        setBusy(true);
+        try {
+          await postFeast(await selectedFields());
         } catch (err) {
           error.textContent = err instanceof Error ? err.message : "SeedFeast could not cook that.";
         } finally {
@@ -163,26 +290,7 @@
         }
       });
 
-      server.addEventListener("click", async () => {
-        rememberKey();
-        answer.textContent = "";
-        error.textContent = "";
-        setBusy(true);
-        try {
-          const response = await fetch("/api/feast", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(seedsFromForm()),
-          });
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || "The server could not cook that.");
-          answer.textContent = data.recipe;
-        } catch (err) {
-          error.textContent = err instanceof Error ? err.message : "SeedFeast could not cook that.";
-        } finally {
-          setBusy(false);
-        }
-      });
+      drawProviders();
     </script>
   </body>
 </html>

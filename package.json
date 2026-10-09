@@ -7,7 +7,7 @@
 		"build": "react-router build && node scripts/assemble-vercel-output.mjs && node scripts/verify-vercel-routing.mjs",
 		"start": "react-router-serve ./build/server/index.js",
 		"typecheck": "react-router typegen && tsc --noEmit",
-		"test": "node --test feast/seedfeast-router.test.mjs feast/handles.test.mjs src/server/catalog.test.mjs scripts/vercel-output-config.test.mjs"
+		"test": "node --test feast/seedfeast-router.test.mjs feast/handles.test.mjs feast/key-storage.test.mjs src/server/catalog.test.mjs src/server/ai-proxy.test.mjs scripts/vercel-output-config.test.mjs"
 	},
 	"dependencies": {
 		"@auth/core": "^0.37.2",
@@ -28,7 +28,7 @@
 		"@tanstack/react-table": "^8.21.2",
 		"@types/babel__core": "^7.20.5",
 		"@vis.gl/react-google-maps": "^0.8.3",
-		"ai-buffer": "github:noahnemo-rgb/ai-buffer-template#9e7397958d93423d2bba65315fcd88b30caa3e61",
+		"ai-buffer": "github:noahnemo-rgb/ai-buffer-template#v0.4.0",
 		"argon2": "^0.43.0",
 		"classnames": "^2.5.1",
 		"clean-stack": "^5.2.0",

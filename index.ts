@@ -19,8 +19,8 @@ import ws from 'ws';
 import NeonAdapter from './adapter';
 import { getHTMLForErrorPage } from './get-html-for-error-page';
 import { isAuthAction } from './is-auth-action';
-import { askConnection, askFeast } from './feast/seedfeast-router.js';
 import { API_BASENAME, api } from './route-builder';
+import { mountAiRoutes } from './src/server/ai-proxy.js';
 import { mountCatalogApi } from './src/server/catalog.js';
 neonConfig.webSocketConstructor = ws;
 
@@ -238,83 +238,7 @@ app.get('/vendor/ai-buffer/:file', async (c) => {
   }
 });
 
-app.post('/api/ai', async (c) => {
-  let body: { purpose?: unknown; message?: unknown; notes?: unknown } = {};
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'Send the request as JSON.' }, 400);
-  }
-  const purpose = body.purpose === 'listing' || body.purpose === 'coordinate' ? body.purpose : 'chat';
-  if (body.purpose != null && body.purpose !== 'chat' && body.purpose !== 'listing' && body.purpose !== 'coordinate') {
-    return c.json({ error: 'Choose chat, listing help, or community coordination.' }, 400);
-  }
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (!apiKey) {
-    return c.json(
-      {
-        error:
-          'The server has no OpenRouter key. In the browser, Puter runs first, and a key saved on this device tries Space Bunny Alpha next.',
-      },
-      503,
-    );
-  }
-  try {
-    const result = await askConnection({
-      purpose,
-      message: typeof body.message === 'string' ? body.message : '',
-      notes: typeof body.notes === 'string' ? body.notes : '',
-      apiKey,
-      model: process.env.OPENROUTER_MODEL,
-      platform: 'server',
-      timeoutMs: 55_000,
-    });
-    return c.json({
-      reply: result.reply,
-      models: result.models,
-      connection: result.connection,
-      purpose: result.purpose,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'SeedFeast could not answer that.';
-    const status = message.includes('what you need') || message.includes('Choose chat') ? 400 : 502;
-    return c.json({ error: message }, status);
-  }
-});
-
-app.post('/api/feast', async (c) => {
-  let body: { seeds?: unknown; notes?: unknown } = {};
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'Send the seeds as JSON.' }, 400);
-  }
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (!apiKey) {
-    return c.json(
-      {
-        error:
-          'The server has no OpenRouter key. In the browser, Puter runs first, and a key saved on this device tries Space Bunny Alpha next.',
-      },
-      503,
-    );
-  }
-  try {
-    const result = await askFeast({
-      seeds: typeof body.seeds === 'string' ? body.seeds : '',
-      notes: typeof body.notes === 'string' ? body.notes : '',
-      apiKey,
-      model: process.env.OPENROUTER_MODEL,
-      platform: 'server',
-      timeoutMs: 55_000,
-    });
-    return c.json({ recipe: result.recipe, models: result.models, connection: result.connection });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'SeedFeast could not cook that.';
-    const status = message.includes('seeds or ingredients') ? 400 : 502;
-    return c.json({ error: message }, status);
-  }
-});
+mountAiRoutes(app);
 
 app.all('/integrations/:path{.+}', (c) => {
   return c.json({ error: 'SeedFeast does not forward integration handles or webhooks.' }, 410);

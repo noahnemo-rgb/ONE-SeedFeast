@@ -1,21 +1,28 @@
 import { askFeast, CONNECTION_LABELS, SEEDFEAST_SITE } from '../../cook/seedfeast-router.js';
+import {
+  byokFor,
+  callServerAi,
+  dropLegacyOpenRouterKey,
+  rememberOpenRouterKey,
+  selectionFields,
+} from '../../cook/browser-ai.js';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import { ProviderDashboard } from '../components/provider-dashboard';
 import { AppFrame } from '../components/frame';
-
-const KEY = 'seedfeast_openrouter_key';
 
 export default function FeastScreen() {
   const [seeds, setSeeds] = useState('');
   const [notes, setNotes] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [keyTouched, setKeyTouched] = useState(false);
   const [answer, setAnswer] = useState('');
   const [connection, setConnection] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setApiKey(sessionStorage.getItem(KEY) ?? '');
+    dropLegacyOpenRouterKey();
     if (!document.querySelector('script[data-puter]')) {
       const script = document.createElement('script');
       script.src = 'https://js.puter.com/v2/';
@@ -25,33 +32,45 @@ export default function FeastScreen() {
     }
   }, []);
 
-  function rememberKey() {
-    const next = apiKey.trim();
-    if (next) sessionStorage.setItem(KEY, next);
-    else sessionStorage.removeItem(KEY);
-    return next;
-  }
-
   async function cookHere(event) {
     event.preventDefault();
-    const key = rememberKey();
+    const key = await rememberOpenRouterKey(apiKey, keyTouched);
     setAnswer('');
     setConnection('');
     setError('');
     setBusy(true);
     try {
-      const result = await askFeast({
-        seeds,
-        notes,
-        apiKey: key,
-        platform: 'browser',
-        loadPuter: async () => {
-          if (window.puter?.ai?.chat) return window.puter;
-          throw new Error('Puter is not available in this browser.');
-        },
-      });
-      setAnswer(result.recipe);
-      setConnection(result.connection || '');
+      const selected = await selectionFields();
+      if (selected.provider) {
+        const byok = byokFor(selected.provider, key);
+        const data = await callServerAi('/api/feast', {
+          seeds,
+          notes,
+          ...selected,
+          ...(byok ? { byok } : {}),
+        });
+        setAnswer(data.recipe);
+        setConnection(data.connection || '');
+        return;
+      }
+      try {
+        const result = await askFeast({
+          seeds,
+          notes,
+          platform: 'browser',
+          loadPuter: async () => {
+            if (window.puter?.ai?.chat) return window.puter;
+            throw new Error('Puter is not available in this browser.');
+          },
+        });
+        setAnswer(result.recipe);
+        setConnection(result.connection || '');
+      } catch (err) {
+        if (!key) throw err;
+        const data = await callServerAi('/api/feast', { seeds, notes, byok: key });
+        setAnswer(data.recipe);
+        setConnection(data.connection || '');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'SeedFeast could not cook that.');
     } finally {
@@ -60,19 +79,14 @@ export default function FeastScreen() {
   }
 
   async function cookOnServer() {
-    rememberKey();
+    await rememberOpenRouterKey(apiKey, keyTouched);
     setAnswer('');
     setConnection('');
     setError('');
     setBusy(true);
     try {
-      const response = await fetch('/api/feast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seeds, notes }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'The server could not cook that.');
+      const selected = await selectionFields();
+      const data = await callServerAi('/api/feast', { seeds, notes, ...selected });
       setAnswer(data.recipe);
       setConnection(data.connection || '');
     } catch (err) {
@@ -92,6 +106,7 @@ export default function FeastScreen() {
         <p className="mt-2 leading-relaxed">
           From seed to gourmet feast. Cooking goes through ai-buffer, the shared connection for this site ({SEEDFEAST_SITE}). Puter in this browser runs first. A key saved here tries Space Bunny Alpha, then your OpenRouter model. The server key is the last stop and stays on the server.
         </p>
+        <ProviderDashboard />
         <form onSubmit={cookHere}>
           <label className="mt-4 block font-sans text-sm" htmlFor="seeds">
             Seeds and ingredients
@@ -122,7 +137,10 @@ export default function FeastScreen() {
             type="password"
             autoComplete="off"
             value={apiKey}
-            onChange={(event) => setApiKey(event.target.value)}
+            onChange={(event) => {
+              setApiKey(event.target.value);
+              setKeyTouched(true);
+            }}
             className="mt-1 w-full rounded-md border border-[#c9b89a] bg-[#fffdf8] px-3 py-2"
           />
           <div className="mt-4 flex flex-wrap gap-2">
