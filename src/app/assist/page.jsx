@@ -1,9 +1,15 @@
 import { askConnection, AI_PURPOSES, CONNECTION_LABELS, SEEDFEAST_SITE } from '../../cook/seedfeast-router.js';
+import {
+  byokFor,
+  callServerAi,
+  dropLegacyOpenRouterKey,
+  rememberOpenRouterKey,
+  selectionFields,
+} from '../../cook/browser-ai.js';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { ProviderDashboard } from '../components/provider-dashboard';
 import { AppFrame } from '../components/frame';
-
-const KEY = 'seedfeast_openrouter_key';
 
 const purposes = [
   ['chat', 'Chat'],
@@ -21,13 +27,14 @@ export default function AssistScreen() {
   const [message, setMessage] = useState(() => params.get('message') || '');
   const [notes, setNotes] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [keyTouched, setKeyTouched] = useState(false);
   const [answer, setAnswer] = useState('');
   const [connection, setConnection] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setApiKey(sessionStorage.getItem(KEY) ?? '');
+    dropLegacyOpenRouterKey();
     if (!document.querySelector('script[data-puter]')) {
       const script = document.createElement('script');
       script.src = 'https://js.puter.com/v2/';
@@ -37,34 +44,47 @@ export default function AssistScreen() {
     }
   }, []);
 
-  function rememberKey() {
-    const next = apiKey.trim();
-    if (next) sessionStorage.setItem(KEY, next);
-    else sessionStorage.removeItem(KEY);
-    return next;
-  }
-
   async function askHere(event) {
     event.preventDefault();
-    const key = rememberKey();
+    const key = await rememberOpenRouterKey(apiKey, keyTouched);
     setAnswer('');
     setConnection('');
     setError('');
     setBusy(true);
     try {
-      const result = await askConnection({
-        purpose,
-        message,
-        notes,
-        apiKey: key,
-        platform: 'browser',
-        loadPuter: async () => {
-          if (window.puter?.ai?.chat) return window.puter;
-          throw new Error('Puter is not available in this browser.');
-        },
-      });
-      setAnswer(result.reply);
-      setConnection(result.connection || '');
+      const selected = await selectionFields();
+      if (selected.provider) {
+        const byok = byokFor(selected.provider, key);
+        const data = await callServerAi('/api/ai', {
+          purpose,
+          message,
+          notes,
+          ...selected,
+          ...(byok ? { byok } : {}),
+        });
+        setAnswer(data.reply);
+        setConnection(data.connection || '');
+        return;
+      }
+      try {
+        const result = await askConnection({
+          purpose,
+          message,
+          notes,
+          platform: 'browser',
+          loadPuter: async () => {
+            if (window.puter?.ai?.chat) return window.puter;
+            throw new Error('Puter is not available in this browser.');
+          },
+        });
+        setAnswer(result.reply);
+        setConnection(result.connection || '');
+      } catch (err) {
+        if (!key) throw err;
+        const data = await callServerAi('/api/ai', { purpose, message, notes, byok: key });
+        setAnswer(data.reply);
+        setConnection(data.connection || '');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'SeedFeast could not answer that.');
     } finally {
@@ -73,19 +93,14 @@ export default function AssistScreen() {
   }
 
   async function askOnServer() {
-    rememberKey();
+    await rememberOpenRouterKey(apiKey, keyTouched);
     setAnswer('');
     setConnection('');
     setError('');
     setBusy(true);
     try {
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purpose, message, notes }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'The server could not answer that.');
+      const selected = await selectionFields();
+      const data = await callServerAi('/api/ai', { purpose, message, notes, ...selected });
       setAnswer(data.reply);
       setConnection(data.connection || '');
     } catch (err) {
@@ -105,6 +120,7 @@ export default function AssistScreen() {
         <p className="mt-2 leading-relaxed">
           The same ai-buffer connection ({SEEDFEAST_SITE}) answers chat, listing help, and community coordination. This door does not cook. Recipes stay on the feast page.
         </p>
+        <ProviderDashboard />
         <form onSubmit={askHere}>
           <div className="mt-4 flex flex-wrap gap-2 font-sans">
             {purposes.map(([value, label]) => (
@@ -155,7 +171,10 @@ export default function AssistScreen() {
             type="password"
             autoComplete="off"
             value={apiKey}
-            onChange={(event) => setApiKey(event.target.value)}
+            onChange={(event) => {
+              setApiKey(event.target.value);
+              setKeyTouched(true);
+            }}
             className="mt-1 w-full rounded-md border border-[#c9b89a] bg-[#fffdf8] px-3 py-2"
           />
           <div className="mt-4 flex flex-wrap gap-2">

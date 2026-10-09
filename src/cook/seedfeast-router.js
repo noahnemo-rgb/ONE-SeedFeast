@@ -6,6 +6,10 @@ export const CONNECTION_LABELS = {
   puter: "Puter",
   "space-bunny": "Space Bunny Alpha",
   openrouter: "OpenRouter",
+  "vercel-gateway": "Vercel Gateway",
+  gemini: "Gemini API",
+  nvidia: "NVIDIA NIM",
+  llmapi: "LLMAPI",
 };
 
 export const SEEDFEAST_MODEL = "openai/gpt-4o-mini";
